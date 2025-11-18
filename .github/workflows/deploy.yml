@@ -1,0 +1,293 @@
+name: Deploy Pipeline
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME_BACKEND: ${{ github.repository }}/backend
+  IMAGE_NAME_FRONTEND: ${{ github.repository }}/frontend
+
+jobs:
+  build-and-push:
+    name: Build & Push Docker Images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      backend-image: ${{ steps.meta-backend.outputs.tags }}
+      frontend-image: ${{ steps.meta-frontend.outputs.tags }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for Backend
+        id: meta-backend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Extract metadata for Frontend
+        id: meta-frontend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: ${{ steps.meta-backend.outputs.tags }}
+          labels: ${{ steps.meta-backend.outputs.labels }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }}:buildcache,mode=max
+
+      - name: Build and push Frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL || 'http://localhost:8000' }}
+          tags: ${{ steps.meta-frontend.outputs.tags }}
+          labels: ${{ steps.meta-frontend.outputs.labels }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}:buildcache,mode=max
+
+      - name: Image digest
+        run: |
+          echo "Backend: ${{ steps.meta-backend.outputs.tags }}"
+          echo "Frontend: ${{ steps.meta-frontend.outputs.tags }}"
+
+  deploy-frontend-vercel:
+    name: Deploy Frontend to Vercel
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: ./frontend
+          vercel-args: '--prod'
+
+      - name: Deployment summary
+        run: |
+          echo "✅ Frontend deployed to Vercel"
+          echo "🔗 Check deployment: https://vercel.com/${{ secrets.VERCEL_ORG_ID }}/${{ secrets.VERCEL_PROJECT_ID }}"
+
+  deploy-backend-render:
+    name: Deploy Backend to Render
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    # Only run if Render is configured
+    # Enable this job by setting RENDER_DEPLOY_HOOK_URL secret
+
+    steps:
+      - name: Check Render configuration
+        id: check-render
+        run: |
+          if [ -z "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" ]; then
+            echo "configured=false" >> $GITHUB_OUTPUT
+            echo "⚠️ Render deployment skipped - RENDER_DEPLOY_HOOK_URL not configured"
+          else
+            echo "configured=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Trigger Render deployment
+        if: steps.check-render.outputs.configured == 'true'
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}")
+          if [ "$response" -eq 200 ] || [ "$response" -eq 201 ]; then
+            echo "✅ Render deployment triggered successfully"
+          else
+            echo "❌ Render deployment failed with status: $response"
+            exit 1
+          fi
+
+      - name: Deployment summary
+        if: steps.check-render.outputs.configured == 'true'
+        run: |
+          echo "✅ Backend deployment triggered on Render"
+          echo "🔗 Check deployment status in Render dashboard"
+
+  deploy-backend-railway:
+    name: Deploy Backend to Railway
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    # Only run if Railway is configured
+    # Enable this job by setting RAILWAY_TOKEN secret
+
+    steps:
+      - name: Check Railway configuration
+        id: check-railway
+        run: |
+          if [ -z "${{ secrets.RAILWAY_TOKEN }}" ]; then
+            echo "configured=false" >> $GITHUB_OUTPUT
+            echo "⚠️ Railway deployment skipped - RAILWAY_TOKEN not configured"
+          else
+            echo "configured=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Checkout code
+        if: steps.check-railway.outputs.configured == 'true'
+        uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        if: steps.check-railway.outputs.configured == 'true'
+        run: npm install -g @railway/cli
+
+      - name: Deploy to Railway
+        if: steps.check-railway.outputs.configured == 'true'
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          cd backend
+          railway up --service backend
+          echo "✅ Backend deployed to Railway"
+
+      - name: Deployment summary
+        if: steps.check-railway.outputs.configured == 'true'
+        run: |
+          echo "✅ Backend deployed to Railway"
+          echo "🔗 Check deployment: https://railway.app/dashboard"
+
+  deploy-backend-flyio:
+    name: Deploy Backend to Fly.io
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    # Only run if Fly.io is configured
+    # Enable this job by setting FLY_API_TOKEN secret
+
+    steps:
+      - name: Check Fly.io configuration
+        id: check-flyio
+        run: |
+          if [ -z "${{ secrets.FLY_API_TOKEN }}" ]; then
+            echo "configured=false" >> $GITHUB_OUTPUT
+            echo "⚠️ Fly.io deployment skipped - FLY_API_TOKEN not configured"
+          else
+            echo "configured=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Checkout code
+        if: steps.check-flyio.outputs.configured == 'true'
+        uses: actions/checkout@v4
+
+      - name: Setup Fly.io CLI
+        if: steps.check-flyio.outputs.configured == 'true'
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy to Fly.io
+        if: steps.check-flyio.outputs.configured == 'true'
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          cd backend
+          if [ ! -f "fly.toml" ]; then
+            echo "⚠️ fly.toml not found. Please run 'fly launch' locally first."
+            exit 1
+          fi
+          flyctl deploy --remote-only
+          echo "✅ Backend deployed to Fly.io"
+
+      - name: Deployment summary
+        if: steps.check-flyio.outputs.configured == 'true'
+        run: |
+          echo "✅ Backend deployed to Fly.io"
+          echo "🔗 Check deployment: https://fly.io/dashboard"
+
+  deployment-status:
+    name: Deployment Status
+    runs-on: ubuntu-latest
+    needs: [build-and-push, deploy-frontend-vercel, deploy-backend-render, deploy-backend-railway, deploy-backend-flyio]
+    if: always()
+
+    steps:
+      - name: Check deployment status
+        run: |
+          echo "📊 Deployment Summary"
+          echo "===================="
+          echo "Build & Push: ${{ needs.build-and-push.result }}"
+          echo "Frontend (Vercel): ${{ needs.deploy-frontend-vercel.result }}"
+          echo "Backend (Render): ${{ needs.deploy-backend-render.result }}"
+          echo "Backend (Railway): ${{ needs.deploy-backend-railway.result }}"
+          echo "Backend (Fly.io): ${{ needs.deploy-backend-flyio.result }}"
+          echo ""
+
+          if [ "${{ needs.build-and-push.result }}" == "failure" ]; then
+            echo "❌ Docker build and push failed!"
+            exit 1
+          fi
+
+          # Check if at least one deployment succeeded
+          if [ "${{ needs.deploy-frontend-vercel.result }}" == "success" ] || \
+             [ "${{ needs.deploy-backend-render.result }}" == "success" ] || \
+             [ "${{ needs.deploy-backend-railway.result }}" == "success" ] || \
+             [ "${{ needs.deploy-backend-flyio.result }}" == "success" ]; then
+            echo "✅ At least one deployment succeeded!"
+          else
+            echo "⚠️ No deployments were configured or all failed"
+            echo "💡 Configure deployment secrets to enable automatic deployment"
+          fi
+
+      - name: Notification
+        run: |
+          echo "🚀 Deployment pipeline completed"
+          echo "Commit: ${{ github.sha }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Author: ${{ github.actor }}"

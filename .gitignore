@@ -12,6 +12,7 @@ ENV/
 # FastAPI
 .env
 .env.local
+.env.production
 
 # Database
 *.db
@@ -46,3 +47,18 @@ Thumbs.db
 
 # Scraped data
 scraped_html/
+
+# CI/CD
+coverage.xml
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Vercel
+frontend/.vercel
+
+# Fly.io
+backend/fly.toml
+
+# Docker build cache
+.buildx-cache/
