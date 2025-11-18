@@ -199,6 +199,276 @@ EchoChat/
 - Responses are based solely on scraped content
 - Sources are cited for transparency
 
+## 🚀 CI/CD Pipeline
+
+EchoChat includes a complete CI/CD pipeline using **GitHub Actions** for automated testing, building, and deployment.
+
+### 🔄 Workflows
+
+#### 1. Continuous Integration (`ci.yml`)
+
+Triggered on every push and pull request:
+
+- **Frontend Pipeline**:
+  - Install dependencies with npm cache
+  - Run ESLint linting
+  - TypeScript type checking
+  - Build Next.js application
+  - Upload build artifacts on failure
+
+- **Backend Pipeline**:
+  - Install Python dependencies with pip cache
+  - Run Black formatter check
+  - Run isort import checker
+  - Run Flake8 linter
+  - Execute pytest with coverage
+  - Upload coverage reports
+
+- **Docker Build**:
+  - Build backend Docker image with layer caching
+  - Build frontend Docker image with layer caching
+  - Validate Docker builds succeed
+
+#### 2. Deployment Pipeline (`deploy.yml`)
+
+Triggered on:
+- Push to `main` branch
+- Version tags (e.g., `v1.0.0`)
+- Manual workflow dispatch
+
+**Pipeline stages**:
+
+1. **Build & Push**: Build and push Docker images to GitHub Container Registry (GHCR)
+2. **Deploy Frontend**: Automatic deployment to Vercel
+3. **Deploy Backend**: Choose your cloud provider:
+   - Render.com (via deploy hook)
+   - Railway (via CLI)
+   - Fly.io (via flyctl)
+
+### 🔑 Required GitHub Secrets
+
+Configure these secrets in your GitHub repository settings (`Settings > Secrets and variables > Actions`):
+
+#### Frontend Deployment (Vercel)
+
+| Secret | Description | Required |
+|--------|-------------|----------|
+| `VERCEL_TOKEN` | Vercel API token | ✅ Yes |
+| `VERCEL_ORG_ID` | Vercel organization ID | ✅ Yes |
+| `VERCEL_PROJECT_ID` | Vercel project ID | ✅ Yes |
+| `NEXT_PUBLIC_API_URL` | Backend API URL | ✅ Yes |
+
+**How to get Vercel credentials**:
+```bash
+# Install Vercel CLI
+npm i -g vercel
+
+# Login and link project
+cd frontend
+vercel link
+
+# Get org and project IDs from .vercel/project.json
+cat .vercel/project.json
+
+# Create token at https://vercel.com/account/tokens
+```
+
+#### Backend Deployment (Choose ONE)
+
+**Option A: Render.com**
+
+| Secret | Description | Required |
+|--------|-------------|----------|
+| `RENDER_DEPLOY_HOOK_URL` | Render deploy hook URL | ✅ Yes |
+| `ANTHROPIC_API_KEY` | Anthropic API key (set in Render dashboard) | ✅ Yes |
+
+**How to get Render deploy hook**:
+1. Create a new Web Service on Render
+2. Connect your GitHub repository
+3. Go to Settings > Deploy Hook
+4. Copy the webhook URL
+
+**Option B: Railway**
+
+| Secret | Description | Required |
+|--------|-------------|----------|
+| `RAILWAY_TOKEN` | Railway API token | ✅ Yes |
+| `ANTHROPIC_API_KEY` | Anthropic API key | ✅ Yes |
+
+**How to get Railway token**:
+```bash
+# Install Railway CLI
+npm i -g @railway/cli
+
+# Login
+railway login
+
+# Create project
+cd backend
+railway init
+
+# Get token from dashboard: Settings > Tokens
+```
+
+**Option C: Fly.io**
+
+| Secret | Description | Required |
+|--------|-------------|----------|
+| `FLY_API_TOKEN` | Fly.io API token | ✅ Yes |
+| `ANTHROPIC_API_KEY` | Anthropic API key | ✅ Yes |
+
+**How to get Fly.io token**:
+```bash
+# Install Fly CLI
+curl -L https://fly.io/install.sh | sh
+
+# Login and launch app
+cd backend
+fly auth login
+fly launch
+
+# Get token
+fly auth token
+```
+
+#### General Secrets
+
+| Secret | Description | Required |
+|--------|-------------|----------|
+| `ANTHROPIC_API_KEY` | Your Anthropic API key | ✅ Yes |
+
+### 📋 Deployment Checklist
+
+1. **Setup GitHub Secrets**:
+   - Add all required secrets for your chosen deployment platform
+   - Verify secrets are correctly configured
+
+2. **First Deployment**:
+   - Push to `main` branch or create a version tag
+   - Monitor GitHub Actions workflow execution
+   - Verify deployments in respective dashboards
+
+3. **Verify Deployment**:
+   - Frontend: Check Vercel deployment URL
+   - Backend: Test API endpoint `/health`
+   - Logs: Review GitHub Actions logs for any errors
+
+### 🎯 Manual Deployment
+
+You can trigger deployments manually using GitHub Actions:
+
+1. Go to your repository on GitHub
+2. Click **Actions** tab
+3. Select **Deploy Pipeline** workflow
+4. Click **Run workflow**
+5. Choose environment (production/staging)
+6. Click **Run workflow** button
+
+### 🔧 Adding a New Cloud Provider
+
+To add support for a new backend deployment platform:
+
+1. **Create a new job** in `.github/workflows/deploy.yml`:
+
+```yaml
+deploy-backend-yourplatform:
+  name: Deploy Backend to YourPlatform
+  runs-on: ubuntu-latest
+  needs: build-and-push
+  if: github.ref == 'refs/heads/main'
+
+  steps:
+    - name: Check configuration
+      id: check-platform
+      run: |
+        if [ -z "${{ secrets.YOURPLATFORM_TOKEN }}" ]; then
+          echo "configured=false" >> $GITHUB_OUTPUT
+        else
+          echo "configured=true" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Deploy to YourPlatform
+      if: steps.check-platform.outputs.configured == 'true'
+      run: |
+        # Add deployment commands here
+        echo "Deploying to YourPlatform..."
+```
+
+2. **Add the new job** to `deployment-status` dependencies:
+
+```yaml
+deployment-status:
+  needs: [..., deploy-backend-yourplatform]
+```
+
+3. **Update README** with new platform instructions
+
+4. **Add required secrets** to GitHub repository
+
+### 📊 Monitoring Deployments
+
+#### GitHub Actions Dashboard
+
+- View workflow runs: `https://github.com/OWNER/REPO/actions`
+- Check deployment status and logs
+- Download artifacts for debugging
+
+#### Platform-Specific Dashboards
+
+- **Vercel**: https://vercel.com/dashboard
+- **Render**: https://dashboard.render.com/
+- **Railway**: https://railway.app/dashboard
+- **Fly.io**: https://fly.io/dashboard
+
+### 🐛 Troubleshooting CI/CD
+
+#### Docker Build Fails
+
+```bash
+# Test locally
+docker build -t echochat-backend ./backend
+docker build -t echochat-frontend ./frontend
+```
+
+#### Deployment Fails
+
+1. **Check secrets**: Verify all required secrets are set
+2. **Review logs**: Check GitHub Actions logs for error messages
+3. **Test manually**: Try deploying manually using platform CLI
+4. **Verify environment**: Check environment variables on platform
+
+#### Vercel Deployment Issues
+
+```bash
+# Test Vercel deployment locally
+cd frontend
+vercel --prod
+```
+
+#### Backend Not Responding
+
+1. Check health endpoint: `curl https://your-backend.com/health`
+2. Review platform logs for errors
+3. Verify environment variables are set correctly
+4. Check database connections and API keys
+
+### 🔄 Continuous Deployment Strategy
+
+- **Main branch**: Auto-deploy to production
+- **Pull requests**: Run CI checks only (no deployment)
+- **Version tags**: Deploy with version tracking
+- **Feature branches**: CI checks only
+
+### 📈 Deployment Best Practices
+
+1. **Always test locally** before pushing
+2. **Use version tags** for production releases
+3. **Monitor logs** after deployment
+4. **Keep secrets secure** - never commit them
+5. **Review CI failures** promptly
+6. **Maintain documentation** for deployment steps
+7. **Backup data** regularly
+
 ## 🌐 Deployment
 
 ### Backend Deployment (Free Options)
@@ -211,13 +481,15 @@ EchoChat/
 4. Build command: `pip install -r requirements.txt && playwright install chromium`
 5. Start command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
 6. Add environment variables from `.env`
+7. Copy deploy hook URL for GitHub Actions
 
 #### Railway.app
 
 1. Create new project from GitHub repo
 2. Select backend service
 3. Add environment variables
-4. Deploy automatically
+4. Generate API token for GitHub Actions
+5. Deploy automatically
 
 #### Fly.io
 
@@ -228,6 +500,11 @@ fly secrets set ANTHROPIC_API_KEY=your_key
 fly deploy
 ```
 
+Get auth token for GitHub Actions:
+```bash
+fly auth token
+```
+
 ### Frontend Deployment (Vercel)
 
 1. Import your repository to Vercel
@@ -235,6 +512,36 @@ fly deploy
 3. Add environment variable:
    - `NEXT_PUBLIC_API_URL`: Your backend URL
 4. Deploy
+5. Get credentials for GitHub Actions:
+   ```bash
+   vercel link
+   cat .vercel/project.json
+   ```
+
+### Production Deployment with Docker
+
+Use the production-optimized compose file:
+
+```bash
+# Create data directories
+mkdir -p ./data/{backend,logs,chroma}
+
+# Create .env.production file
+cp .env.example .env.production
+# Edit .env.production with production values
+
+# Pull latest images from GHCR
+docker compose -f docker-compose.production.yml pull
+
+# Start services
+docker compose -f docker-compose.production.yml up -d
+
+# Monitor logs
+docker compose -f docker-compose.production.yml logs -f
+
+# Check health
+docker compose -f docker-compose.production.yml ps
+```
 
 ## 📊 API Endpoints
 
