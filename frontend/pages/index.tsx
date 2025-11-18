@@ -9,6 +9,16 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Sanitize HTML to prevent XSS attacks
+  const sanitizeHTML = (html: string): string => {
+    // Remove script tags, event handlers, and javascript: protocols
+    return html
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
+      .replace(/on\w+\s*=\s*[^\s>]*/gi, '')
+      .replace(/javascript:/gi, '');
+  };
+
   useEffect(() => {
     loadHomepage();
   }, []);
@@ -73,8 +83,8 @@ export default function Home() {
 
       <main className="min-h-screen">
         {homepage && (
-          <div 
-            dangerouslySetInnerHTML={{ __html: homepage.html }}
+          <div
+            dangerouslySetInnerHTML={{ __html: sanitizeHTML(homepage.html) }}
             className="w-full"
           />
         )}

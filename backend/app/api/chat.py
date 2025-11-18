@@ -116,8 +116,11 @@ Context from the website:
             system=system_prompt,
             messages=messages
         )
-        
+
         # Extract response text
+        if not response.content or len(response.content) == 0:
+            raise HTTPException(status_code=500, detail="Empty response from AI service")
+
         response_text = response.content[0].text
         
         # Build sources list
