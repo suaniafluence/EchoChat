@@ -201,7 +201,7 @@ export default function Admin() {
                           </a>
                         </td>
                         <td className="py-3 px-4">
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusBadge(job.status)}}>
+                          <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusBadge(job.status)}`>
                             {job.status}
                           </span>
                         </td>

@@ -60,6 +60,10 @@ async def _run_scrape_job(job_id: int, target_url: str, reindex: bool, db_connec
     try:
         # Update job status
         job = db.query(ScrapeJob).filter(ScrapeJob.id == job_id).first()
+        if not job:
+            logger.error(f"Job {job_id} not found in database")
+            return
+
         job.status = JobStatus.RUNNING
         job.started_at = datetime.now()
         db.commit()
@@ -82,10 +86,13 @@ async def _run_scrape_job(job_id: int, target_url: str, reindex: bool, db_connec
         
     except Exception as e:
         logger.error(f"Scrape job {job_id} failed: {e}")
-        job.status = JobStatus.FAILED
-        job.error_message = str(e)
-        job.completed_at = datetime.now()
-        db.commit()
+        # Re-fetch job in case of early failure
+        job = db.query(ScrapeJob).filter(ScrapeJob.id == job_id).first()
+        if job:
+            job.status = JobStatus.FAILED
+            job.error_message = str(e)
+            job.completed_at = datetime.now()
+            db.commit()
     finally:
         db.close()
 

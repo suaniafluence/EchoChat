@@ -25,16 +25,23 @@ export default function Chat() {
   }, [messages]);
 
   const sendMessage = async () => {
-    if (!input.trim() || isLoading) return;
+    // Check loading state first to prevent duplicate submissions
+    if (isLoading) return;
+    if (!input.trim()) return;
+
+    // Set loading immediately to prevent race conditions from rapid clicks
+    setIsLoading(true);
+
+    // Capture input value before clearing to avoid race conditions
+    const messageText = input.trim();
 
     const userMessage: Message = {
       role: 'user',
-      content: input,
+      content: messageText,
     };
 
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
-    setIsLoading(true);
 
     try {
       const conversationHistory = messages.map((msg) => ({
@@ -43,7 +50,7 @@ export default function Chat() {
       }));
 
       const response = await chatAPI.sendMessage({
-        message: input,
+        message: messageText,
         conversation_history: conversationHistory,
       });
 
