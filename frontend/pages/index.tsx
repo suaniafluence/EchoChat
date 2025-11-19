@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import Head from 'next/head';
+import Link from 'next/link';
 import Chat from '@/components/Chat';
 import { adminAPI } from '@/lib/api';
 import { AlertCircle } from 'lucide-react';
@@ -58,15 +59,15 @@ export default function Home() {
           </div>
           <p className="text-gray-600 mb-4">{error}</p>
           <p className="text-sm text-gray-500 mb-4">
-            Please visit the <a href="/admin" className="text-primary-600 hover:underline">admin panel</a> to
+            Please visit the <Link href="/admin" className="text-primary-600 hover:underline">admin panel</Link> to
             start scraping a website.
           </p>
-          <a
+          <Link
             href="/admin"
             className="block w-full text-center bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded transition"
           >
             Go to Admin Panel
-          </a>
+          </Link>
         </div>
         <Chat />
       </div>
