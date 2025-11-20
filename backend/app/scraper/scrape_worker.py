@@ -67,14 +67,18 @@ async def run_scrape_job_worker(job_id: int, target_url: str, reindex: bool):
             logger.info("Reindexing completed")
 
     except Exception as e:
-        logger.error(f"Scrape job {job_id} failed: {str(e)}", exc_info=True)
-        job = db.query(ScrapeJob).filter(ScrapeJob.id == job_id).first()
-        if job:
-            job.status = JobStatus.FAILED
-            job.error_message = str(e)
-            job.completed_at = datetime.now()
-            db.commit()
-            logger.error(f"Job {job_id} marked as FAILED")
+        error_msg = str(e)
+        logger.error(f"Scrape job {job_id} failed: {error_msg}", exc_info=True)
+        try:
+            job = db.query(ScrapeJob).filter(ScrapeJob.id == job_id).first()
+            if job:
+                job.status = JobStatus.FAILED
+                job.error_message = error_msg[:500]  # Limit to 500 chars
+                job.completed_at = datetime.now()
+                db.commit()
+                logger.info(f"Job {job_id} marked as FAILED with error: {error_msg[:200]}")
+        except Exception as db_error:
+            logger.error(f"Failed to update job {job_id} status in DB: {db_error}", exc_info=True)
     finally:
         db.close()
 

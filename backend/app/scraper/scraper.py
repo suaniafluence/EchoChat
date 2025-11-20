@@ -105,49 +105,55 @@ class WebScraper:
     async def _scrape_page(self, browser: Browser, url: str) -> Optional[Dict]:
         """
         Scrape a single page.
-        
+
         Args:
             browser: Playwright browser instance
             url: URL to scrape
-            
+
         Returns:
             Scraped page data or None on failure
         """
         page = None
         try:
-            page = await browser.new_page()
-            
+            # Create page with user agent to avoid blocking
+            page = await browser.new_page(
+                user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            )
+
             # Set timeout
             page.set_default_timeout(settings.scraper_timeout)
-            
+
             # Navigate to page
-            await page.goto(url, wait_until='networkidle')
-            
+            try:
+                await page.goto(url, wait_until='domcontentloaded', timeout=settings.scraper_timeout)
+            except Exception as nav_error:
+                logger.warning(f"Navigation timeout for {url}, proceeding with partial content: {nav_error}")
+
             # Get page content
             html = await page.content()
-            
+
             # Parse with BeautifulSoup
             soup = BeautifulSoup(html, 'lxml')
-            
+
             # Extract title
             title = soup.title.string if soup.title else ""
-            
+
             # Remove script and style elements
             for script in soup(['script', 'style', 'meta', 'link']):
                 script.decompose()
-            
+
             # Extract text content
             text_content = soup.get_text(separator=' ', strip=True)
-            
+
             # Clean up whitespace
             text_content = ' '.join(text_content.split())
-            
+
             # Extract links for further crawling
             new_links = await self._extract_links(page, url)
             self.to_visit.update(new_links)
-            
+
             logger.info(f"Scraped: {url} (found {len(new_links)} new links)")
-            
+
             return {
                 'url': url,
                 'title': title,
@@ -155,13 +161,16 @@ class WebScraper:
                 'html': html,
                 'is_homepage': url == self.target_url
             }
-            
+
         except Exception as e:
             logger.error(f"Failed to scrape {url}: {e}")
             return None
         finally:
             if page:
-                await page.close()
+                try:
+                    await page.close()
+                except Exception as close_error:
+                    logger.warning(f"Error closing page for {url}: {close_error}")
     
     def _save_to_db(self, page_data: Dict) -> None:
         """
@@ -196,49 +205,58 @@ class WebScraper:
     async def scrape(self, max_pages: Optional[int] = None) -> int:
         """
         Start the scraping process.
-        
+
         Args:
             max_pages: Maximum number of pages to scrape (None for unlimited)
-            
+
         Returns:
             Number of pages scraped
         """
         logger.info(f"Starting scrape of {self.target_url}")
         logger.info(f"Respect robots.txt: {settings.respect_robots_txt}")
-        
+
         pages_scraped = 0
-        
-        async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
-            
-            try:
-                while self.to_visit and (max_pages is None or pages_scraped < max_pages):
-                    # Get next URL
-                    url = self.to_visit.pop()
-                    
-                    # Skip if already visited
-                    if url in self.visited_urls:
-                        continue
-                    
-                    # Mark as visited
-                    self.visited_urls.add(url)
-                    
-                    # Scrape the page
-                    page_data = await self._scrape_page(browser, url)
-                    
-                    if page_data:
-                        self._save_to_db(page_data)
-                        self.scraped_data.append(page_data)
-                        pages_scraped += 1
-                        
-                        # Add small delay to be polite
-                        await asyncio.sleep(0.5)
-                
-                logger.info(f"Scraping completed. Total pages scraped: {pages_scraped}")
-                
-            finally:
-                await browser.close()
-        
+        browser = None
+
+        try:
+            async with async_playwright() as p:
+                browser = await p.chromium.launch(headless=True)
+
+                try:
+                    while self.to_visit and (max_pages is None or pages_scraped < max_pages):
+                        # Get next URL
+                        url = self.to_visit.pop()
+
+                        # Skip if already visited
+                        if url in self.visited_urls:
+                            continue
+
+                        # Mark as visited
+                        self.visited_urls.add(url)
+
+                        # Scrape the page
+                        page_data = await self._scrape_page(browser, url)
+
+                        if page_data:
+                            self._save_to_db(page_data)
+                            self.scraped_data.append(page_data)
+                            pages_scraped += 1
+
+                            # Add small delay to be polite
+                            await asyncio.sleep(0.5)
+
+                    logger.info(f"Scraping completed. Total pages scraped: {pages_scraped}")
+
+                finally:
+                    try:
+                        if browser:
+                            await browser.close()
+                    except Exception as e:
+                        logger.warning(f"Error closing browser: {e}")
+        except Exception as e:
+            logger.error(f"Scraping error: {e}", exc_info=True)
+            raise
+
         return pages_scraped
 
 
