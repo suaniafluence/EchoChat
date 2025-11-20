@@ -1,4 +1,6 @@
 """Main FastAPI application."""
+import asyncio
+import sys
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -8,6 +10,11 @@ from app.models.database import init_db
 from app.api import chat, admin
 from app.scheduler.scheduler import setup_scheduler, start_scheduler
 from app.utils.logger import logger
+
+
+# Fix for Windows: Use ProactorEventLoop for Playwright subprocess support
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
 
 @asynccontextmanager

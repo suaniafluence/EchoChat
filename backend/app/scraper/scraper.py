@@ -1,5 +1,6 @@
 """Deep web scraper using Playwright."""
 import asyncio
+import sys
 from typing import Set, Dict, List, Optional
 from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup
@@ -9,6 +10,11 @@ from sqlalchemy.orm import Session
 from app.models.scraped_page import ScrapedPage
 from app.config import settings
 from app.utils.logger import logger
+
+
+# Fix for Windows: Use ProactorEventLoop for subprocess support
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
 
 class WebScraper:

@@ -1,4 +1,6 @@
 """Admin API endpoints for configuration and scraping."""
+import subprocess
+import sys
 from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
 from pydantic import BaseModel, HttpUrl
 from typing import Optional, List
@@ -9,8 +11,6 @@ from sqlalchemy import desc
 from app.models.database import get_db
 from app.models.scrape_job import ScrapeJob, JobStatus
 from app.models.scraped_page import ScrapedPage
-from app.scraper.scraper import run_scraper
-from app.rag.rag_engine import get_rag_engine
 from app.config import settings
 from app.utils.logger import logger
 
@@ -51,50 +51,32 @@ class StatsResponse(BaseModel):
     scrape_frequency_hours: int
 
 
-async def _run_scrape_job(job_id: int, target_url: str, reindex: bool, db_connection_string: str):
-    """Background task to run scraping job."""
-    from app.models.database import SessionLocal
-    
-    db = SessionLocal()
-    
+def _run_scrape_job(job_id: int, target_url: str, reindex: bool):
+    """Background task to run scraping job in a separate process."""
     try:
-        # Update job status
-        job = db.query(ScrapeJob).filter(ScrapeJob.id == job_id).first()
-        if not job:
-            logger.error(f"Job {job_id} not found in database")
-            return
+        logger.info(f"Starting scrape worker process for job {job_id}")
 
-        job.status = JobStatus.RUNNING
-        job.started_at = datetime.now()
-        db.commit()
-        
-        # Run scraper
-        pages_scraped = await run_scraper(db, target_url)
-        
-        # Update job with results
-        job.pages_scraped = pages_scraped
-        job.status = JobStatus.COMPLETED
-        job.completed_at = datetime.now()
-        db.commit()
-        
-        # Reindex if requested
-        if reindex:
-            logger.info("Starting reindexing...")
-            rag_engine = get_rag_engine()
-            rag_engine.index_all_pages(db)
-            logger.info("Reindexing completed")
-        
+        # Run scraper in a separate Python process to avoid event loop issues on Windows
+        python_executable = sys.executable
+        module_path = "app.scraper.scrape_worker"
+        reindex_str = "true" if reindex else "false"
+
+        result = subprocess.run(
+            [python_executable, "-m", module_path, str(job_id), target_url, reindex_str],
+            capture_output=True,
+            text=True,
+            timeout=3600  # 1 hour timeout
+        )
+
+        if result.returncode != 0:
+            logger.error(f"Scrape worker failed with code {result.returncode}")
+            logger.error(f"STDOUT: {result.stdout}")
+            logger.error(f"STDERR: {result.stderr}")
+
+    except subprocess.TimeoutExpired:
+        logger.error(f"Scrape worker for job {job_id} timed out")
     except Exception as e:
-        logger.error(f"Scrape job {job_id} failed: {e}")
-        # Re-fetch job in case of early failure
-        job = db.query(ScrapeJob).filter(ScrapeJob.id == job_id).first()
-        if job:
-            job.status = JobStatus.FAILED
-            job.error_message = str(e)
-            job.completed_at = datetime.now()
-            db.commit()
-    finally:
-        db.close()
+        logger.error(f"Failed to start scrape worker: {e}", exc_info=True)
 
 
 @router.post("/scrape", response_model=ScrapeJobResponse)
@@ -129,8 +111,7 @@ async def start_scrape(
             _run_scrape_job,
             job.id,
             str(scrape_request.target_url),
-            scrape_request.reindex,
-            settings.database_url
+            scrape_request.reindex
         )
         
         logger.info(f"Started scrape job {job.id} for {scrape_request.target_url}")
@@ -244,24 +225,69 @@ async def get_stats(db: Session = Depends(get_db)):
     )
 
 
+@router.get("/config")
+async def get_config():
+    """
+    Get current configuration.
+
+    Returns:
+        Current configuration
+    """
+    return {
+        "target_url": settings.target_url,
+        "scrape_frequency_hours": settings.scrape_frequency_hours
+    }
+
+
+@router.put("/config")
+async def update_config(config_update: ConfigUpdate):
+    """
+    Update configuration (target URL and scrape frequency).
+
+    Args:
+        config_update: Configuration update request
+
+    Returns:
+        Updated configuration
+    """
+    try:
+        if config_update.target_url:
+            settings.target_url = str(config_update.target_url)
+            logger.info(f"Updated target URL to: {settings.target_url}")
+
+        if config_update.scrape_frequency_hours:
+            settings.scrape_frequency_hours = config_update.scrape_frequency_hours
+            logger.info(f"Updated scrape frequency to: {settings.scrape_frequency_hours} hours")
+
+        return {
+            "target_url": settings.target_url,
+            "scrape_frequency_hours": settings.scrape_frequency_hours,
+            "message": "Configuration updated successfully"
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to update configuration: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/homepage")
 async def get_homepage(db: Session = Depends(get_db)):
     """
     Get the homepage HTML for pixel-perfect display.
-    
+
     Args:
         db: Database session
-        
+
     Returns:
         Homepage HTML and metadata
     """
     homepage = db.query(ScrapedPage).filter(
         ScrapedPage.is_homepage == True
     ).first()
-    
+
     if not homepage:
         raise HTTPException(status_code=404, detail="Homepage not found. Please run scraping first.")
-    
+
     return {
         'url': homepage.url,
         'title': homepage.title,
