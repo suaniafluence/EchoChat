@@ -1,8 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import { adminAPI, Stats, ScrapeJob } from '@/lib/api';
-import { RefreshCw, Server, Database, Clock, ExternalLink, ArrowLeft } from 'lucide-react';
+import { RefreshCw, Server, Database, Clock, ExternalLink, ArrowLeft, X, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
+
+interface LogEntry {
+  timestamp: string;
+  level: string;
+  logger: string;
+  message: string;
+}
 
 export default function Admin() {
   const [stats, setStats] = useState<Stats | null>(null);
@@ -10,12 +17,41 @@ export default function Admin() {
   const [targetUrl, setTargetUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{type: 'success' | 'error'; text: string} | null>(null);
+  const [showLogs, setShowLogs] = useState(false);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const logsEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadData();
     const interval = setInterval(loadData, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    // Auto-scroll logs to bottom
+    if (logsEndRef.current && showLogs) {
+      logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [logs, showLogs]);
+
+  useEffect(() => {
+    // Load logs when panel is shown
+    if (showLogs) {
+      loadLogs();
+      const interval = setInterval(loadLogs, 2000); // Update logs every 2 seconds
+      return () => clearInterval(interval);
+    }
+  }, [showLogs]);
+
+  const loadLogs = async () => {
+    try {
+      const response = await fetch('/api/admin/logs?limit=100');
+      const data = await response.json();
+      setLogs(data.logs);
+    } catch (error) {
+      console.error('Failed to load logs:', error);
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -216,6 +252,62 @@ export default function Admin() {
               </div>
             )}
           </div>
+
+          {/* Logs Panel Button */}
+          <button
+            onClick={() => setShowLogs(!showLogs)}
+            className="fixed bottom-6 right-6 bg-primary-600 hover:bg-primary-700 text-white rounded-full p-4 shadow-lg transition hover:shadow-xl flex items-center gap-2"
+            title="Toggle System Logs"
+          >
+            {showLogs ? <X size={24} /> : <ChevronDown size={24} />}
+          </button>
+
+          {/* Logs Modal */}
+          {showLogs && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={() => setShowLogs(false)}>
+              <div
+                className="fixed bottom-0 right-0 w-full md:w-1/2 h-2/3 md:h-full bg-white shadow-2xl flex flex-col rounded-t-lg md:rounded-none overflow-hidden"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50">
+                  <h3 className="font-semibold text-gray-900">System Logs</h3>
+                  <button
+                    onClick={() => setShowLogs(false)}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+
+                {/* Logs Content */}
+                <div className="flex-1 overflow-y-auto bg-gray-900 text-gray-100 font-mono text-sm p-4">
+                  {logs.length === 0 ? (
+                    <div className="text-gray-500 text-center py-8">No logs yet...</div>
+                  ) : (
+                    logs.map((log, index) => (
+                      <div
+                        key={index}
+                        className={`py-1 ${
+                          log.level === 'ERROR'
+                            ? 'text-red-400'
+                            : log.level === 'WARNING'
+                            ? 'text-yellow-400'
+                            : log.level === 'INFO'
+                            ? 'text-green-400'
+                            : 'text-gray-300'
+                        }`}
+                      >
+                        <span className="text-gray-500">[{log.timestamp}]</span>{' '}
+                        <span className="font-semibold">{log.level}</span> {log.message}
+                      </div>
+                    ))
+                  )}
+                  <div ref={logsEndRef} />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </>

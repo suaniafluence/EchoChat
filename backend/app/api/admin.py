@@ -3,7 +3,7 @@ import subprocess
 import sys
 from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
 from pydantic import BaseModel, HttpUrl
-from typing import Optional, List
+from typing import Optional, List, Dict
 from datetime import datetime
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
@@ -13,6 +13,7 @@ from app.models.scrape_job import ScrapeJob, JobStatus
 from app.models.scraped_page import ScrapedPage
 from app.config import settings
 from app.utils.logger import logger
+from app.utils.log_buffer import get_logs
 
 
 router = APIRouter()
@@ -286,6 +287,23 @@ async def update_config(config_update: ConfigUpdate):
     except Exception as e:
         logger.error(f"Failed to update configuration: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/logs")
+async def get_system_logs(limit: int = 100):
+    """
+    Get recent system logs for display in Admin Panel.
+
+    Args:
+        limit: Maximum number of logs to return (default 100)
+
+    Returns:
+        List of recent log entries
+    """
+    return {
+        "logs": get_logs(limit=limit),
+        "total": len(get_logs(limit=1000))
+    }
 
 
 @router.get("/homepage")

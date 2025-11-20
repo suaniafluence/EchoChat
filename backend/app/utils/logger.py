@@ -9,20 +9,20 @@ from app.config import settings
 def setup_logger(name: str = "echochat") -> logging.Logger:
     """
     Configure and return a logger instance.
-    
+
     Args:
         name: Logger name
-        
+
     Returns:
         Configured logger
     """
     logger = logging.getLogger(name)
     logger.setLevel(getattr(logging, settings.log_level.upper()))
-    
+
     # Avoid duplicate handlers
     if logger.handlers:
         return logger
-    
+
     # Console handler
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(logging.DEBUG if settings.debug else logging.INFO)
@@ -32,11 +32,11 @@ def setup_logger(name: str = "echochat") -> logging.Logger:
     )
     console_handler.setFormatter(console_format)
     logger.addHandler(console_handler)
-    
+
     # File handler with rotation
     log_file = Path(settings.log_file)
     log_file.parent.mkdir(parents=True, exist_ok=True)
-    
+
     file_handler = RotatingFileHandler(
         log_file,
         maxBytes=10485760,  # 10MB
@@ -49,7 +49,17 @@ def setup_logger(name: str = "echochat") -> logging.Logger:
     )
     file_handler.setFormatter(file_format)
     logger.addHandler(file_handler)
-    
+
+    # Buffer handler for UI display
+    try:
+        from app.utils.log_buffer import get_log_handler
+        buffer_handler = get_log_handler()
+        buffer_handler.setLevel(logging.DEBUG)
+        buffer_handler.setFormatter(console_format)
+        logger.addHandler(buffer_handler)
+    except Exception as e:
+        print(f"Warning: Could not setup log buffer handler: {e}")
+
     return logger
 
 
