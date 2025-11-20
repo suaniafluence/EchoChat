@@ -61,6 +61,8 @@ def _run_scrape_job(job_id: int, target_url: str, reindex: bool):
         module_path = "app.scraper.scrape_worker"
         reindex_str = "true" if reindex else "false"
 
+        logger.info(f"Worker command: {python_executable} -m {module_path} {job_id} {target_url} {reindex_str}")
+
         result = subprocess.run(
             [python_executable, "-m", module_path, str(job_id), target_url, reindex_str],
             capture_output=True,
@@ -68,10 +70,14 @@ def _run_scrape_job(job_id: int, target_url: str, reindex: bool):
             timeout=3600  # 1 hour timeout
         )
 
+        logger.info(f"Scrape worker completed with return code: {result.returncode}")
+        if result.stdout:
+            logger.info(f"Worker STDOUT:\n{result.stdout}")
+        if result.stderr:
+            logger.error(f"Worker STDERR:\n{result.stderr}")
+
         if result.returncode != 0:
             logger.error(f"Scrape worker failed with code {result.returncode}")
-            logger.error(f"STDOUT: {result.stdout}")
-            logger.error(f"STDERR: {result.stderr}")
 
     except subprocess.TimeoutExpired:
         logger.error(f"Scrape worker for job {job_id} timed out")
