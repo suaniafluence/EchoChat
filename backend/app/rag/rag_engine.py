@@ -165,30 +165,30 @@ class RAGEngine:
     def retrieve(self, query: str, top_k: int = None) -> List[Dict]:
         """
         Retrieve relevant chunks for a query.
-        
+
         Args:
             query: Search query
             top_k: Number of results to return (defaults to settings)
-            
+
         Returns:
             List of relevant chunks with metadata
         """
         if top_k is None:
             top_k = settings.top_k_results
-        
+
         try:
             # Generate query embedding
             query_embedding = self.embedding_model.encode([query])[0]
-            
+
             # Query ChromaDB
             results = self.collection.query(
                 query_embeddings=[query_embedding.tolist()],
                 n_results=top_k
             )
-            
+
             # Format results
             formatted_results = []
-            
+
             if results['documents'] and results['documents'][0]:
                 for i in range(len(results['documents'][0])):
                     formatted_results.append({
@@ -196,18 +196,46 @@ class RAGEngine:
                         'metadata': results['metadatas'][0][i],
                         'distance': results['distances'][0][i] if 'distances' in results else None
                     })
-            
+
             logger.info(f"Retrieved {len(formatted_results)} results for query: {query[:50]}...")
             return formatted_results
-            
+
         except Exception as e:
             logger.error(f"Failed to retrieve results: {e}")
-            return []
+            # Try to refresh the collection reference and retry
+            try:
+                logger.info("Attempting to refresh collection reference and retry...")
+                self.collection = self.chroma_client.get_or_create_collection(
+                    name="echochat_docs",
+                    metadata={"hnsw:space": "cosine"}
+                )
+
+                # Retry the query
+                query_embedding = self.embedding_model.encode([query])[0]
+                results = self.collection.query(
+                    query_embeddings=[query_embedding.tolist()],
+                    n_results=top_k
+                )
+
+                formatted_results = []
+                if results['documents'] and results['documents'][0]:
+                    for i in range(len(results['documents'][0])):
+                        formatted_results.append({
+                            'content': results['documents'][0][i],
+                            'metadata': results['metadatas'][0][i],
+                            'distance': results['distances'][0][i] if 'distances' in results else None
+                        })
+
+                logger.info(f"Collection refreshed. Retrieved {len(formatted_results)} results")
+                return formatted_results
+            except Exception as refresh_error:
+                logger.error(f"Failed to refresh collection and retry: {refresh_error}")
+                return []
     
     def get_collection_stats(self) -> Dict:
         """
         Get statistics about the indexed collection.
-        
+
         Returns:
             Dictionary with collection statistics
         """
@@ -219,7 +247,22 @@ class RAGEngine:
             }
         except Exception as e:
             logger.error(f"Failed to get collection stats: {e}")
-            return {'total_chunks': 0, 'collection_name': 'unknown'}
+            # Try to refresh the collection reference
+            try:
+                logger.info("Attempting to refresh collection reference...")
+                self.collection = self.chroma_client.get_or_create_collection(
+                    name="echochat_docs",
+                    metadata={"hnsw:space": "cosine"}
+                )
+                count = self.collection.count()
+                logger.info("Collection reference refreshed successfully")
+                return {
+                    'total_chunks': count,
+                    'collection_name': self.collection.name
+                }
+            except Exception as refresh_error:
+                logger.error(f"Failed to refresh collection: {refresh_error}")
+                return {'total_chunks': 0, 'collection_name': 'unknown'}
 
 
 # Global RAG engine instance
