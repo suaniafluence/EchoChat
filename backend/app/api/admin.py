@@ -40,6 +40,7 @@ class ScrapeJobResponse(BaseModel):
     started_at: Optional[datetime]
     completed_at: Optional[datetime]
     created_at: datetime
+    rag_indexed: int = 0  # Number of chunks indexed in RAG
 
 
 class StatsResponse(BaseModel):
@@ -130,7 +131,8 @@ async def start_scrape(
             error_message=job.error_message,
             started_at=job.started_at,
             completed_at=job.completed_at,
-            created_at=job.created_at
+            created_at=job.created_at,
+            rag_indexed=job.rag_indexed or 0
         )
         
     except Exception as e:
@@ -164,7 +166,8 @@ async def get_jobs(
             error_message=job.error_message,
             started_at=job.started_at,
             completed_at=job.completed_at,
-            created_at=job.created_at
+            created_at=job.created_at,
+            rag_indexed=job.rag_indexed or 0
         )
         for job in jobs
     ]
@@ -198,7 +201,8 @@ async def get_job(
         error_message=job.error_message,
         started_at=job.started_at,
         completed_at=job.completed_at,
-        created_at=job.created_at
+        created_at=job.created_at,
+        rag_indexed=job.rag_indexed or 0
     )
 
 
@@ -206,26 +210,34 @@ async def get_job(
 async def get_stats(db: Session = Depends(get_db)):
     """
     Get system statistics.
-    
+    Always uses the last successfully indexed RAG data, even if recent scraping jobs failed.
+
     Args:
         db: Database session
-        
+
     Returns:
         System statistics
     """
     total_pages = db.query(ScrapedPage).count()
-    
+
     rag_engine = get_rag_engine()
     rag_stats = rag_engine.get_collection_stats()
-    
-    last_job = db.query(ScrapeJob).filter(
-        ScrapeJob.status == JobStatus.COMPLETED
+
+    # Get the last job that successfully indexed RAG (has rag_indexed > 0)
+    last_indexed_job = db.query(ScrapeJob).filter(
+        ScrapeJob.rag_indexed > 0
     ).order_by(desc(ScrapeJob.completed_at)).first()
-    
+
+    # Fallback to last completed job if no indexed job found
+    if not last_indexed_job:
+        last_indexed_job = db.query(ScrapeJob).filter(
+            ScrapeJob.status == JobStatus.COMPLETED
+        ).order_by(desc(ScrapeJob.completed_at)).first()
+
     return StatsResponse(
         total_pages=total_pages,
         total_chunks=rag_stats.get('total_chunks', 0),
-        last_scrape=last_job.completed_at if last_job else None,
+        last_scrape=last_indexed_job.completed_at if last_indexed_job else None,
         target_url=settings.target_url,
         scrape_frequency_hours=settings.scrape_frequency_hours
     )

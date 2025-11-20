@@ -15,9 +15,9 @@ class JobStatus(str, Enum):
 
 class ScrapeJob(Base):
     """Model for scrape jobs."""
-    
+
     __tablename__ = "scrape_jobs"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     target_url = Column(String, nullable=False)
     status = Column(SQLEnum(JobStatus), default=JobStatus.PENDING)
@@ -26,6 +26,8 @@ class ScrapeJob(Base):
     started_at = Column(DateTime(timezone=True), nullable=True)
     completed_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    
+    rag_indexed = Column(Integer, default=0)  # Number of chunks indexed in RAG
+    last_successful_job_id = Column(Integer, nullable=True)  # Reference to last successful scraping job
+
     def __repr__(self):
-        return f"<ScrapeJob(id={self.id}, status='{self.status}', pages={self.pages_scraped})>"
+        return f"<ScrapeJob(id={self.id}, status='{self.status}', pages={self.pages_scraped}, rag_indexed={self.rag_indexed})>"
