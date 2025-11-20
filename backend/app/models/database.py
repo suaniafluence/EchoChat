@@ -38,6 +38,32 @@ def get_db() -> Generator[Session, None, None]:
         db.close()
 
 
+def run_migrations() -> None:
+    """Run database migrations for schema updates."""
+    from sqlalchemy import inspect, text
+
+    inspector = inspect(engine)
+
+    # Check if scrape_jobs table exists
+    if 'scrape_jobs' in inspector.get_table_names():
+        columns = [col['name'] for col in inspector.get_columns('scrape_jobs')]
+
+        # Migration: Add rag_indexed column if it doesn't exist
+        if 'rag_indexed' not in columns:
+            with engine.connect() as conn:
+                conn.execute(text('ALTER TABLE scrape_jobs ADD COLUMN rag_indexed INTEGER DEFAULT 0'))
+                conn.commit()
+                print("Migration: Added rag_indexed column to scrape_jobs table")
+
+        # Migration: Add last_successful_job_id column if it doesn't exist
+        if 'last_successful_job_id' not in columns:
+            with engine.connect() as conn:
+                conn.execute(text('ALTER TABLE scrape_jobs ADD COLUMN last_successful_job_id INTEGER'))
+                conn.commit()
+                print("Migration: Added last_successful_job_id column to scrape_jobs table")
+
+
 def init_db() -> None:
     """Initialize database tables."""
     Base.metadata.create_all(bind=engine)
+    run_migrations()
