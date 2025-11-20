@@ -63,14 +63,13 @@ async def run_scrape_job_worker(job_id: int, target_url: str, reindex: bool):
         if reindex and pages_scraped > 0:
             logger.info("Starting reindexing...")
             rag_engine = get_rag_engine()
-            rag_stats = rag_engine.index_all_pages(db)
-            total_chunks = rag_stats.get('total_chunks', 0) if rag_stats else 0
+            total_chunks = rag_engine.index_all_pages(db)
 
             # Update job with RAG stats
             job.rag_indexed = total_chunks
             job.last_successful_job_id = job.id
             db.commit()
-            logger.info(f"Reindexing completed. Total chunks indexed: {total_chunks}")
+            logger.info(f"Reindexing complete. Total chunks indexed: {total_chunks} from {pages_scraped} pages")
 
     except Exception as e:
         error_msg = str(e)

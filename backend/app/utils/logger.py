@@ -52,11 +52,22 @@ def setup_logger(name: str = "echochat") -> logging.Logger:
 
     # Buffer handler for UI display
     try:
-        from app.utils.log_buffer import get_log_handler
+        from app.utils.log_buffer import get_log_handler, LogBufferHandler
         buffer_handler = get_log_handler()
         buffer_handler.setLevel(logging.DEBUG)
         buffer_handler.setFormatter(console_format)
         logger.addHandler(buffer_handler)
+
+        # Also attach buffer handler to root logger to capture all logs (including uvicorn)
+        root_logger = logging.getLogger()
+        # Check if LogBufferHandler is already attached to root logger
+        has_buffer_handler = any(isinstance(h, LogBufferHandler) for h in root_logger.handlers)
+        if not has_buffer_handler:
+            root_buffer_handler = get_log_handler()
+            root_buffer_handler.setLevel(logging.INFO)
+            root_buffer_handler.setFormatter(console_format)
+            root_logger.addHandler(root_buffer_handler)
+            root_logger.setLevel(logging.INFO)
     except Exception as e:
         print(f"Warning: Could not setup log buffer handler: {e}")
 
