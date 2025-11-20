@@ -14,6 +14,7 @@ from app.models.scraped_page import ScrapedPage
 from app.config import settings
 from app.utils.logger import logger
 from app.utils.log_buffer import get_logs
+from app.rag.rag_engine import get_rag_engine
 
 
 router = APIRouter()
