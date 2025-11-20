@@ -60,6 +60,8 @@ SCRAPE_FREQUENCY_HOURS=24
 NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
 
+> **Note**: With Docker, the `.env` file at the root is sufficient. The other backend configuration values (database, RAG, scraper settings) are defined in `docker-compose.yml`. For manual installation, see the Backend Setup section below.
+
 ### 3. Start the application
 
 ```bash
@@ -104,11 +106,14 @@ playwright install chromium
 
 # Configure environment
 cp .env.example .env
-# Edit .env with your settings
+# Edit backend/.env with ALL required settings (see Configuration section below)
+# This is different from Docker setup - you need all backend variables!
 
 # Run the backend
 uvicorn app.main:app --reload
 ```
+
+> **Important**: For manual installation, the `backend/.env` file must contain **all backend configuration variables** (database, RAG, scraper, server, CORS, logging, etc.). See the Configuration section below for a complete list.
 
 ### Frontend Setup
 
@@ -165,19 +170,45 @@ EchoChat/
 
 ### Environment Variables
 
-**Backend** (`backend/.env`):
+**Backend** (`backend/.env` for manual installation):
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `APP_NAME` | Application name | `EchoChat` |
+| `APP_VERSION` | Application version | `1.0.0` |
+| `DEBUG` | Debug mode | `False` |
+| `TARGET_URL` | Website to scrape | `https://www.example.fr` |
+| `SCRAPE_FREQUENCY_HOURS` | Scraping frequency | `24` |
+| `ANTHROPIC_API_KEY` | Anthropic API key | **Required** |
+| `ANTHROPIC_MODEL` | Claude model to use | `claude-3-5-sonnet-20241022` |
+| `DATABASE_URL` | SQLite database path | `sqlite:///./data/echochat.db` |
+| `CHROMA_PERSIST_DIRECTORY` | ChromaDB storage path | `./chroma_data` |
+| `EMBEDDING_MODEL` | Sentence transformer model | `sentence-transformers/all-MiniLM-L6-v2` |
+| `CHUNK_SIZE` | Text chunk size for RAG | `1000` |
+| `CHUNK_OVERLAP` | Overlap between chunks | `200` |
+| `TOP_K_RESULTS` | Number of RAG results | `5` |
+| `MAX_CONCURRENT_PAGES` | Max concurrent scraping | `5` |
+| `SCRAPER_TIMEOUT` | Page load timeout (ms) | `30000` |
+| `RESPECT_ROBOTS_TXT` | Respect robots.txt | `False` |
+| `HOST` | Server host | `0.0.0.0` |
+| `PORT` | Server port | `8000` |
+| `CORS_ORIGINS` | Allowed CORS origins | `http://localhost:3000,http://localhost:8000` |
+| `LOG_LEVEL` | Logging level | `INFO` |
+| `LOG_FILE` | Log file path | `./logs/app.log` |
+
+> **Note**: For Docker deployments, only `TARGET_URL`, `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`, and `SCRAPE_FREQUENCY_HOURS` need to be set in the root `.env` file. Other values are configured in `docker-compose.yml`.
+
+**Root** (`.env` for Docker deployments only):
 
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `TARGET_URL` | Website to scrape | `https://www.example.fr` |
-| `ANTHROPIC_API_KEY` | Anthropic API key | Required |
+| `ANTHROPIC_API_KEY` | Anthropic API key | **Required** |
 | `ANTHROPIC_MODEL` | Claude model to use | `claude-3-5-sonnet-20241022` |
 | `SCRAPE_FREQUENCY_HOURS` | Scraping frequency | `24` |
-| `RESPECT_ROBOTS_TXT` | Respect robots.txt | `False` |
-| `CHUNK_SIZE` | Text chunk size for RAG | `1000` |
-| `TOP_K_RESULTS` | Number of RAG results | `5` |
+| `NEXT_PUBLIC_API_URL` | Backend API URL | `http://localhost:8000` |
 
-**Frontend** (`.env.local`):
+**Frontend** (`.env.local` for manual installation):
 
 | Variable | Description | Default |
 |----------|-------------|---------|
