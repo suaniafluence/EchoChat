@@ -6,18 +6,33 @@ import { adminAPI } from '@/lib/api';
 import { AlertCircle } from 'lucide-react';
 
 export default function Home() {
-  const [homepage, setHomepage] = useState<{html: string; title: string} | null>(null);
+  const [homepage, setHomepage] = useState<{html: string; title: string; url?: string} | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Sanitize HTML to prevent XSS attacks
-  const sanitizeHTML = (html: string): string => {
+  // Sanitize HTML to prevent XSS attacks and add base tag for resource loading
+  const sanitizeHTML = (html: string, baseUrl: string): string => {
     // Remove script tags, event handlers, and javascript: protocols
-    return html
+    let sanitized = html
       .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
       .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
       .replace(/on\w+\s*=\s*[^\s>]*/gi, '')
       .replace(/javascript:/gi, '');
+
+    // Add base tag to ensure resources load from original domain
+    // Extract the base URL (protocol + domain)
+    const urlMatch = baseUrl.match(/^(https?:\/\/[^\/]+)/);
+    if (urlMatch) {
+      const base = urlMatch[1];
+      // Insert base tag after <head> tag
+      sanitized = sanitized.replace(/<head>/i, `<head><base href="${base}/" target="_parent">`);
+      // If no head tag, insert at the beginning
+      if (!sanitized.includes('<base')) {
+        sanitized = `<base href="${base}/" target="_parent">` + sanitized;
+      }
+    }
+
+    return sanitized;
   };
 
   useEffect(() => {
@@ -28,7 +43,7 @@ export default function Home() {
     try {
       setLoading(true);
       const data = await adminAPI.getHomepage();
-      setHomepage({ html: data.html, title: data.title });
+      setHomepage({ html: data.html, title: data.title, url: data.url });
       setError(null);
     } catch (err: any) {
       console.error('Failed to load homepage:', err);
@@ -84,9 +99,17 @@ export default function Home() {
 
       <main className="min-h-screen">
         {homepage && (
-          <div
-            dangerouslySetInnerHTML={{ __html: sanitizeHTML(homepage.html) }}
-            className="w-full"
+          <iframe
+            srcDoc={sanitizeHTML(homepage.html, homepage.url || '')}
+            className="w-full min-h-screen border-0"
+            title={homepage.title}
+            sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+            style={{
+              width: '100%',
+              height: '100vh',
+              border: 'none',
+              display: 'block'
+            }}
           />
         )}
         <Chat />
