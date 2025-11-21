@@ -81,6 +81,11 @@ export const adminAPI = {
     const response = await api.get('/api/admin/homepage');
     return response.data;
   },
+
+  getLogs: async (limit: number = 100): Promise<{logs: Array<{timestamp: string; level: string; logger: string; message: string}>; total: number}> => {
+    const response = await api.get('/api/admin/logs', { params: { limit } });
+    return response.data;
+  },
 };
 
 export default api;
