@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
+import { useSession, signOut } from 'next-auth/react';
+import { useRouter } from 'next/router';
 import { adminAPI, Stats, ScrapeJob } from '@/lib/api';
-import { RefreshCw, Server, Database, Clock, ExternalLink, ArrowLeft, X, ChevronDown } from 'lucide-react';
+import { RefreshCw, Server, Database, Clock, ExternalLink, ArrowLeft, X, ChevronDown, LogOut } from 'lucide-react';
 import Link from 'next/link';
 
 interface LogEntry {
@@ -12,6 +14,8 @@ interface LogEntry {
 }
 
 export default function Admin() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const [stats, setStats] = useState<Stats | null>(null);
   const [jobs, setJobs] = useState<ScrapeJob[]>([]);
   const [targetUrl, setTargetUrl] = useState('');
@@ -21,11 +25,19 @@ export default function Admin() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const logsEndRef = useRef<HTMLDivElement>(null);
 
+  // Redirect to login if not authenticated
   useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/auth/signin');
+    }
+  }, [status, router]);
+
+  useEffect(() => {
+    if (status !== 'authenticated') return;
     loadData();
     const interval = setInterval(loadData, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [status]);
 
   useEffect(() => {
     // Auto-scroll logs to bottom
@@ -102,6 +114,23 @@ export default function Admin() {
     return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800';
   };
 
+  // Show loading state while checking auth
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <RefreshCw className="animate-spin h-8 w-8 text-primary-600 mx-auto" />
+          <p className="mt-2 text-gray-600">Chargement...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render if not authenticated (redirect will happen)
+  if (status !== 'authenticated') {
+    return null;
+  }
+
   return (
     <>
       <Head>
@@ -111,14 +140,26 @@ export default function Admin() {
       <div className="min-h-screen bg-gray-50 p-4 md:p-8">
         <div className="max-w-6xl mx-auto">
           <div className="mb-6 flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-gray-900">Admin Panel</h1>
-            <Link 
-              href="/"
-              className="flex items-center text-primary-600 hover:text-primary-700"
-            >
-              <ArrowLeft size={20} className="mr-2" />
-              Back to Home
-            </Link>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Admin Panel</h1>
+              <p className="text-sm text-gray-500">Connecté en tant que {session?.user?.email}</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => signOut({ callbackUrl: '/' })}
+                className="flex items-center text-red-600 hover:text-red-700"
+              >
+                <LogOut size={20} className="mr-2" />
+                Déconnexion
+              </button>
+              <Link
+                href="/"
+                className="flex items-center text-primary-600 hover:text-primary-700"
+              >
+                <ArrowLeft size={20} className="mr-2" />
+                Back to Home
+              </Link>
+            </div>
           </div>
 
           {message && (
