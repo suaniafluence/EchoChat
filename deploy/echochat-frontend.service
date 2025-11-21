@@ -1,0 +1,16 @@
+[Unit]
+Description=EchoChat Frontend (Next.js)
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/echochat/frontend
+EnvironmentFile=/opt/echochat/frontend/.env.local
+ExecStart=/usr/bin/npm start
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
