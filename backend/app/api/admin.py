@@ -293,7 +293,7 @@ async def update_config(config_update: ConfigUpdate):
 @router.get("/logs")
 async def get_system_logs(limit: int = 100):
     """
-    Get recent system logs for display in Admin Panel.
+    Get recent system logs from log file for display in Admin Panel.
 
     Args:
         limit: Maximum number of logs to return (default 100)
@@ -301,9 +301,51 @@ async def get_system_logs(limit: int = 100):
     Returns:
         List of recent log entries
     """
+    import os
+    import re
+    from datetime import datetime
+
+    log_file = "./logs/app.log"
+    logs = []
+
+    if os.path.exists(log_file):
+        try:
+            with open(log_file, "r", encoding="utf-8") as f:
+                lines = f.readlines()
+
+            # Parse log lines: format is "timestamp - logger - LEVEL - func:line - message"
+            log_pattern = re.compile(
+                r'^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}) - (\S+) - (\w+) - (.+)$'
+            )
+
+            for line in lines[-limit:]:
+                line = line.strip()
+                if not line:
+                    continue
+                match = log_pattern.match(line)
+                if match:
+                    timestamp_str, logger, level, message = match.groups()
+                    logs.append({
+                        "timestamp": timestamp_str.replace(",", "."),
+                        "level": level,
+                        "logger": logger,
+                        "message": message
+                    })
+                else:
+                    # Handle continuation lines or non-standard format
+                    if logs:
+                        logs[-1]["message"] += "\n" + line
+        except Exception as e:
+            logs.append({
+                "timestamp": datetime.now().isoformat(),
+                "level": "ERROR",
+                "logger": "admin",
+                "message": f"Failed to read log file: {str(e)}"
+            })
+
     return {
-        "logs": get_logs(limit=limit),
-        "total": len(get_logs(limit=1000))
+        "logs": logs,
+        "total": len(logs)
     }
 
 
