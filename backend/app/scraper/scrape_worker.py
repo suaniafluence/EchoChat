@@ -17,6 +17,7 @@ if sys.platform == "win32":
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from app.models.scrape_job import ScrapeJob, JobStatus
+from app.models.scraped_page import ScrapedPage
 from app.scraper.scraper import run_scraper
 from app.rag.rag_engine import get_rag_engine
 from app.config import settings
@@ -47,6 +48,11 @@ async def run_scrape_job_worker(job_id: int, target_url: str, reindex: bool):
         db.commit()
         logger.info(f"Job {job_id} status set to RUNNING")
 
+        # Clear existing scraped pages before scraping new site
+        deleted_count = db.query(ScrapedPage).delete()
+        db.commit()
+        logger.info(f"Cleared {deleted_count} existing scraped pages from database")
+
         # Run scraper
         logger.info(f"Starting scraper for job {job_id}")
         pages_scraped = await run_scraper(db, target_url)
@@ -59,8 +65,8 @@ async def run_scrape_job_worker(job_id: int, target_url: str, reindex: bool):
         db.commit()
         logger.info(f"Job {job_id} marked as COMPLETED")
 
-        # Reindex if requested
-        if reindex and pages_scraped > 0:
+        # Always reindex after successful scrape (ignore reindex parameter)
+        if pages_scraped > 0:
             logger.info("Starting reindexing...")
             rag_engine = get_rag_engine()
             total_chunks = rag_engine.index_all_pages(db)
