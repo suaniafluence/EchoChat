@@ -314,8 +314,9 @@ async def get_system_logs(limit: int = 100):
                 lines = f.readlines()
 
             # Parse log lines: format is "timestamp - logger - LEVEL - func:line - message"
+            # Note: timestamp format is "YYYY-MM-DD HH:MM:SS" (no milliseconds)
             log_pattern = re.compile(
-                r'^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}) - (\S+) - (\w+) - (.+)$'
+                r'^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) - (\S+) - (\w+) - (.+)$'
             )
 
             for line in lines[-limit:]:
@@ -326,7 +327,7 @@ async def get_system_logs(limit: int = 100):
                 if match:
                     timestamp_str, logger, level, message = match.groups()
                     logs.append({
-                        "timestamp": timestamp_str.replace(",", "."),
+                        "timestamp": timestamp_str,
                         "level": level,
                         "logger": logger,
                         "message": message
