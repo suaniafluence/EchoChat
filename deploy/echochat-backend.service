@@ -1,0 +1,17 @@
+[Unit]
+Description=EchoChat Backend API
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/echochat/backend
+Environment="PATH=/opt/echochat/backend/venv/bin"
+EnvironmentFile=/opt/echochat/backend/.env
+ExecStart=/opt/echochat/backend/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
