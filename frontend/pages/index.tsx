@@ -101,10 +101,10 @@ export default function Home() {
         {/* Demo disclaimer banner */}
         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 text-center shadow-md">
           <p className="text-sm md:text-base font-medium">
-            <strong>Démo technique</strong> — Contenu issu d'un site externe. Ce n'est pas une copie ni un site pirate.
+            <strong>Démo technique</strong> — Contenu issu d&apos;un site externe. Ce n&apos;est pas une copie ni un site pirate.
           </p>
           <p className="text-xs md:text-sm opacity-90 mt-1">
-            EchoChat charge uniquement la page publique sélectionnée et y ajoute un assistant conversationnel pour illustrer le fonctionnement d'un RAG (Recherche Augmentée par Génération). Aucune donnée privée n'est collectée, rien n'est hébergé définitivement. Démonstration pédagogique uniquement.
+            EchoChat charge uniquement la page publique sélectionnée et y ajoute un assistant conversationnel pour illustrer le fonctionnement d&apos;un RAG (Recherche Augmentée par Génération). Aucune donnée privée n&apos;est collectée, rien n&apos;est hébergé définitivement. Démonstration pédagogique uniquement.
           </p>
         </div>
         {homepage && (
