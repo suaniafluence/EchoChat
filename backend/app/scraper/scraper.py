@@ -19,14 +19,16 @@ if sys.platform == "win32":
 
 class WebScraper:
     """Deep web scraper that stays within the same domain."""
-    
-    def __init__(self, db: Session, target_url: str = None):
+
+    def __init__(self, db: Session, target_url: str = None, single_page: bool = False, path_prefix: str = None):
         """
         Initialize the scraper.
-        
+
         Args:
             db: Database session
             target_url: Target URL to scrape (defaults to settings)
+            single_page: If True, only scrape the target URL without following links
+            path_prefix: If set, only follow links that start with this path (e.g., "/sortir-bouger/")
         """
         self.db = db
         self.target_url = target_url or settings.target_url
@@ -156,9 +158,11 @@ class WebScraper:
             # Clean up whitespace
             text_content = ' '.join(text_content.split())
 
-            # Extract links for further crawling
-            new_links = await self._extract_links(page, url)
-            self.to_visit.update(new_links)
+            # Extract links for further crawling (unless single_page mode)
+            new_links = set()
+            if not self.single_page:
+                new_links = await self._extract_links(page, url)
+                self.to_visit.update(new_links)
 
             logger.info(f"Scraped: {url} (found {len(new_links)} new links)")
 
@@ -268,16 +272,18 @@ class WebScraper:
         return pages_scraped
 
 
-async def run_scraper(db: Session, target_url: str = None) -> int:
+async def run_scraper(db: Session, target_url: str = None, single_page: bool = False, path_prefix: str = None) -> int:
     """
     Convenience function to run the scraper.
-    
+
     Args:
         db: Database session
         target_url: Target URL to scrape
-        
+        single_page: If True, only scrape the target URL without following links
+        path_prefix: If set, only follow links that start with this path
+
     Returns:
         Number of pages scraped
     """
-    scraper = WebScraper(db, target_url)
+    scraper = WebScraper(db, target_url, single_page=single_page, path_prefix=path_prefix)
     return await scraper.scrape()

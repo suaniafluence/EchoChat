@@ -29,7 +29,7 @@ logging.basicConfig(
 logger = logging.getLogger("echochat")
 
 
-async def run_scrape_job_worker(job_id: int, target_url: str, reindex: bool):
+async def run_scrape_job_worker(job_id: int, target_url: str, reindex: bool, single_page: bool = False, path_prefix: str = None):
     """Run a scraping job as a worker process."""
     # Create database session
     engine = create_engine(settings.database_url)
@@ -54,8 +54,8 @@ async def run_scrape_job_worker(job_id: int, target_url: str, reindex: bool):
         logger.info(f"Cleared {deleted_count} existing scraped pages from database")
 
         # Run scraper
-        logger.info(f"Starting scraper for job {job_id}")
-        pages_scraped = await run_scraper(db, target_url)
+        logger.info(f"Starting scraper for job {job_id} (single_page={single_page}, path_prefix={path_prefix})")
+        pages_scraped = await run_scraper(db, target_url, single_page=single_page, path_prefix=path_prefix)
         logger.info(f"Scraper completed: {pages_scraped} pages scraped")
 
         # Update job with results
@@ -96,13 +96,15 @@ async def run_scrape_job_worker(job_id: int, target_url: str, reindex: bool):
 
 if __name__ == "__main__":
     if len(sys.argv) < 4:
-        logger.error("Usage: python -m app.scraper.scrape_worker <job_id> <target_url> <reindex>")
+        logger.error("Usage: python -m app.scraper.scrape_worker <job_id> <target_url> <reindex> [single_page] [path_prefix]")
         sys.exit(1)
 
     job_id = int(sys.argv[1])
     target_url = sys.argv[2]
     reindex = sys.argv[3].lower() == "true"
+    single_page = sys.argv[4].lower() == "true" if len(sys.argv) > 4 else False
+    path_prefix = sys.argv[5] if len(sys.argv) > 5 and sys.argv[5] else None
 
     logger.info(f"Starting scrape worker for job {job_id}")
-    asyncio.run(run_scrape_job_worker(job_id, target_url, reindex))
+    asyncio.run(run_scrape_job_worker(job_id, target_url, reindex, single_page, path_prefix))
     logger.info(f"Scrape worker for job {job_id} completed")
