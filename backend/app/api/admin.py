@@ -24,6 +24,8 @@ class ScrapeRequest(BaseModel):
     """Request to start a scrape job."""
     target_url: HttpUrl
     reindex: bool = True
+    single_page: bool = False  # Only scrape the target URL, don't follow links
+    path_prefix: Optional[str] = None  # Only follow links starting with this path
 
 
 class ConfigUpdate(BaseModel):
@@ -54,7 +56,7 @@ class StatsResponse(BaseModel):
     scrape_frequency_hours: int
 
 
-def _run_scrape_job(job_id: int, target_url: str, reindex: bool):
+def _run_scrape_job(job_id: int, target_url: str, reindex: bool, single_page: bool = False, path_prefix: str = None):
     """Background task to run scraping job in a separate process."""
     try:
         logger.info(f"Starting scrape worker process for job {job_id}")
@@ -63,11 +65,13 @@ def _run_scrape_job(job_id: int, target_url: str, reindex: bool):
         python_executable = sys.executable
         module_path = "app.scraper.scrape_worker"
         reindex_str = "true" if reindex else "false"
+        single_page_str = "true" if single_page else "false"
+        path_prefix_str = path_prefix or ""
 
-        logger.info(f"Worker command: {python_executable} -m {module_path} {job_id} {target_url} {reindex_str}")
+        logger.info(f"Worker command: {python_executable} -m {module_path} {job_id} {target_url} {reindex_str} {single_page_str} {path_prefix_str}")
 
         result = subprocess.run(
-            [python_executable, "-m", module_path, str(job_id), target_url, reindex_str],
+            [python_executable, "-m", module_path, str(job_id), target_url, reindex_str, single_page_str, path_prefix_str],
             capture_output=True,
             text=True,
             timeout=3600  # 1 hour timeout
@@ -120,7 +124,9 @@ async def start_scrape(
             _run_scrape_job,
             job.id,
             str(scrape_request.target_url),
-            scrape_request.reindex
+            scrape_request.reindex,
+            scrape_request.single_page,
+            scrape_request.path_prefix
         )
         
         logger.info(f"Started scrape job {job.id} for {scrape_request.target_url}")
