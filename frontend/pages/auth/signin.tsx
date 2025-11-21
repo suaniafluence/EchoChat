@@ -16,7 +16,7 @@ export default function SignIn({ providers }: SignInProps) {
         <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-xl shadow-lg">
           <div className="text-center">
             <h2 className="text-3xl font-bold text-gray-900">EchoChat Admin</h2>
-            <p className="mt-2 text-gray-600">Connectez-vous pour accéder au panneau d'administration</p>
+            <p className="mt-2 text-gray-600">Connectez-vous pour accéder au panneau d&apos;administration</p>
           </div>
 
           <div className="mt-8 space-y-4">

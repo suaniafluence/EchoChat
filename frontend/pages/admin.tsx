@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Head from 'next/head';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/router';
@@ -37,6 +37,7 @@ export default function Admin() {
     loadData();
     const interval = setInterval(loadData, 5000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status]);
 
   useEffect(() => {
