@@ -98,6 +98,15 @@ export default function Home() {
       </Head>
 
       <main className="min-h-screen">
+        {/* Demo disclaimer banner */}
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 text-center shadow-md">
+          <p className="text-sm md:text-base font-medium">
+            <strong>Démo technique</strong> — Contenu issu d'un site externe. Ce n'est pas une copie ni un site pirate.
+          </p>
+          <p className="text-xs md:text-sm opacity-90 mt-1">
+            EchoChat charge uniquement la page publique sélectionnée et y ajoute un assistant conversationnel pour illustrer le fonctionnement d'un RAG (Recherche Augmentée par Génération). Aucune donnée privée n'est collectée, rien n'est hébergé définitivement. Démonstration pédagogique uniquement.
+          </p>
+        </div>
         {homepage && (
           <iframe
             srcDoc={sanitizeHTML(homepage.html, homepage.url || '')}
@@ -106,7 +115,7 @@ export default function Home() {
             sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
             style={{
               width: '100%',
-              height: '100vh',
+              height: 'calc(100vh - 80px)',
               border: 'none',
               display: 'block'
             }}
