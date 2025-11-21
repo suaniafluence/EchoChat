@@ -30,7 +30,10 @@ class WebScraper:
         """
         self.db = db
         self.target_url = target_url or settings.target_url
-        self.base_domain = urlparse(self.target_url).netloc
+        parsed_target = urlparse(self.target_url)
+        self.base_domain = parsed_target.netloc
+        # Store the base path to only crawl downward (not parent directories)
+        self.base_path = parsed_target.path.rstrip('/')
         self.visited_urls: Set[str] = set()
         self.to_visit: Set[str] = {self.target_url}
         self.scraped_data: List[Dict] = []
@@ -64,6 +67,11 @@ class WebScraper:
         
         # Check if same domain
         if not self._is_same_domain(url_without_fragment):
+            return None
+
+        # Check if URL is within or below the base path (no going up in hierarchy)
+        url_path = parsed.path.rstrip('/')
+        if self.base_path and not url_path.startswith(self.base_path):
             return None
         
         # Skip common non-HTML extensions
