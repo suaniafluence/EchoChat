@@ -10,7 +10,7 @@ services:
       # Application settings
       - TARGET_URL=${TARGET_URL}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-claude-3-5-sonnet-20241022}
+      - ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-claude-sonnet-4-5-20250929}
 
       # Scraping configuration
       - SCRAPE_FREQUENCY_HOURS=${SCRAPE_FREQUENCY_HOURS:-24}
