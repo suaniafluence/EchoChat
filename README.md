@@ -171,7 +171,7 @@ EchoChat/
 |----------|-------------|---------|
 | `TARGET_URL` | Website to scrape | `https://www.example.fr` |
 | `ANTHROPIC_API_KEY` | Anthropic API key | Required |
-| `ANTHROPIC_MODEL` | Claude model to use | `claude-3-5-sonnet-20241022` |
+| `ANTHROPIC_MODEL` | Claude model to use | `claude-sonnet-4-5-20250929` |
 | `SCRAPE_FREQUENCY_HOURS` | Scraping frequency | `24` |
 | `RESPECT_ROBOTS_TXT` | Respect robots.txt | `False` |
 | `CHUNK_SIZE` | Text chunk size for RAG | `1000` |

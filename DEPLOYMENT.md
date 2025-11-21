@@ -41,7 +41,7 @@ This guide provides detailed instructions for deploying EchoChat to various free
    ANTHROPIC_API_KEY=your_key_here
    TARGET_URL=https://www.example.fr
    SCRAPE_FREQUENCY_HOURS=24
-   ANTHROPIC_MODEL=claude-3-5-sonnet-20241022
+   ANTHROPIC_MODEL=claude-sonnet-4-5-20250929
    CORS_ORIGINS=https://your-frontend-url.vercel.app
    ```
 
@@ -226,7 +226,7 @@ Required for production:
 ```env
 # Anthropic API
 ANTHROPIC_API_KEY=sk-ant-xxxxx
-ANTHROPIC_MODEL=claude-3-5-sonnet-20241022
+ANTHROPIC_MODEL=claude-sonnet-4-5-20250929
 
 # Target website
 TARGET_URL=https://www.yoursite.fr
