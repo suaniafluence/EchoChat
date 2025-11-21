@@ -58,8 +58,7 @@ export default function Admin() {
 
   const loadLogs = async () => {
     try {
-      const response = await fetch('/api/admin/logs?limit=100');
-      const data = await response.json();
+      const data = await adminAPI.getLogs(100);
       setLogs(data.logs);
     } catch (error) {
       console.error('Failed to load logs:', error);
