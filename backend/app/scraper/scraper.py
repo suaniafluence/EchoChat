@@ -231,7 +231,6 @@ class WebScraper:
             Number of pages scraped
         """
         logger.info(f"Starting scrape of {self.target_url}")
-        logger.info(f"Respect robots.txt: {settings.respect_robots_txt}")
 
         pages_scraped = 0
         browser = None
