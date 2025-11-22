@@ -45,9 +45,8 @@ class Settings(BaseSettings):
     top_k_results: int = 5
     
     # Scraper Configuration
-    max_concurrent_pages: int = 5
-    scraper_timeout: int = 30000
-    respect_robots_txt: bool = False
+    scraper_timeout: int = 30000  # Timeout per page in milliseconds
+    scrape_job_timeout: int = 7200  # Total job timeout in seconds (2 hours)
     
     # Server
     host: str = "0.0.0.0"

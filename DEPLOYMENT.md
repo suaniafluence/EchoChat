@@ -236,8 +236,8 @@ SCRAPE_FREQUENCY_HOURS=24
 CORS_ORIGINS=https://your-app.vercel.app,https://your-custom-domain.com
 
 # Optional optimizations
-MAX_CONCURRENT_PAGES=3
 SCRAPER_TIMEOUT=30000
+SCRAPE_JOB_TIMEOUT=7200
 CHUNK_SIZE=1000
 TOP_K_RESULTS=5
 ```
