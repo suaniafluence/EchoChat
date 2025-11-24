@@ -230,7 +230,8 @@ EchoChat/
 | `ANTHROPIC_API_KEY` | Anthropic API key | Required |
 | `ANTHROPIC_MODEL` | Claude model to use | `claude-sonnet-4-5-20250929` |
 | `SCRAPE_FREQUENCY_HOURS` | Scraping frequency | `24` |
-| `RESPECT_ROBOTS_TXT` | Respect robots.txt | `False` |
+| `SCRAPER_TIMEOUT` | Page timeout (ms) | `30000` |
+| `SCRAPE_JOB_TIMEOUT` | Total job timeout (s) | `7200` |
 | `CHUNK_SIZE` | Text chunk size for RAG | `1000` |
 | `TOP_K_RESULTS` | Number of RAG results | `5` |
 

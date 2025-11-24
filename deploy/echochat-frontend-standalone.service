@@ -1,0 +1,30 @@
+[Unit]
+Description=EchoChat Frontend (Next.js Standalone)
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/echochat/frontend
+
+# OPTION 1: Load from .env.production file (RECOMMENDED)
+# Uncomment this line and comment out all Environment= lines below
+EnvironmentFile=/opt/echochat/frontend/.env.production
+
+# OPTION 2: Define variables explicitly (if EnvironmentFile doesn't work)
+# Uncomment these and comment out EnvironmentFile above
+# Environment=NODE_ENV=production
+# Environment=PORT=3001
+# Environment=NEXT_PUBLIC_API_URL=http://localhost:8001
+# Environment=NEXTAUTH_SECRET=your-secret-here
+# Environment=NEXTAUTH_URL=https://echochat.iafluence.cloud
+# Environment=GOOGLE_CLIENT_ID=your-id.apps.googleusercontent.com
+# Environment=GOOGLE_CLIENT_SECRET=your-secret
+# Environment=ALLOWED_ADMIN_EMAILS=suan.tay.job@gmail.com,j.wallut.pro@gmail.com
+
+ExecStart=/usr/bin/node /opt/echochat/frontend/.next/standalone/server.js
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

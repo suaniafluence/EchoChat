@@ -74,7 +74,7 @@ def _run_scrape_job(job_id: int, target_url: str, reindex: bool, single_page: bo
             [python_executable, "-m", module_path, str(job_id), target_url, reindex_str, single_page_str, path_prefix_str],
             capture_output=True,
             text=True,
-            timeout=3600  # 1 hour timeout
+            timeout=settings.scrape_job_timeout
         )
 
         logger.info(f"Scrape worker completed with return code: {result.returncode}")
