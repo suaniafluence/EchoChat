@@ -211,22 +211,42 @@ NEXTAUTH_URL=https://votre-domaine.com
 
 #### 2. Build et copie des fichiers statiques
 
+⚠️ **CRITIQUE** : Les variables `NEXT_PUBLIC_*` doivent être définies **AU MOMENT DU BUILD** car elles sont compilées dans le JavaScript.
+
 ```bash
-# Build en production
-npm run build
+cd frontend
+
+# Nettoyez les permissions si nécessaire (après des copies avec sudo)
+sudo chown -R ubuntu:ubuntu .next
+
+# ⚠️ Build avec la variable définie explicitement
+NEXT_PUBLIC_API_URL=https://votre-domaine.com npm run build
+
+# Vérifiez que la bonne URL est compilée
+grep "votre-domaine.com" .next/standalone/server.js | head -1
 
 # ⚠️ OBLIGATOIRE : Copier les fichiers statiques vers standalone
 # En mode standalone, Next.js NE copie PAS automatiquement ces fichiers
-sudo cp -r .next/static .next/standalone/.next/
-sudo cp -r public .next/standalone/
+cp -r .next/static .next/standalone/.next/
 
-# Ajuster les permissions
-sudo chown -R ubuntu:ubuntu .next/standalone
-sudo chmod -R 755 .next/standalone
+# Copier public si le dossier existe
+if [ -d "public" ]; then
+  cp -r public .next/standalone/
+  echo "✓ Dossier public copié"
+else
+  echo "⚠ Pas de dossier public (c'est normal si vous n'avez pas de fichiers statiques)"
+fi
 
 # Vérifier que les fichiers sont bien copiés
 ls -la .next/standalone/.next/static/chunks/ | head -5
-ls -la .next/standalone/public/ | head -5
+```
+
+**Alternative si problème de permissions :**
+```bash
+# Supprimez complètement .next et recommencez
+sudo rm -rf .next
+NEXT_PUBLIC_API_URL=https://votre-domaine.com npm run build
+cp -r .next/static .next/standalone/.next/
 ```
 
 #### 3. Configuration systemd (recommandé pour production)
@@ -329,21 +349,38 @@ server {
 
 #### 5. Après chaque rebuild
 
-⚠️ **À chaque fois que vous faites `npm run build`**, vous DEVEZ recopier les fichiers statiques :
+⚠️ **À chaque fois que vous voulez changer l'URL ou rebuild**, suivez cette procédure complète :
 
 ```bash
 cd /opt/echochat/frontend
 
-# Rebuild
-npm run build
+# Nettoyez les permissions
+sudo chown -R ubuntu:ubuntu .next
 
-# Recopier les fichiers statiques
-sudo cp -r .next/static .next/standalone/.next/
-sudo cp -r public .next/standalone/
-sudo chown -R ubuntu:ubuntu .next/standalone
+# Rebuild AVEC la variable définie
+NEXT_PUBLIC_API_URL=https://votre-domaine.com npm run build
+
+# Vérifiez que c'est la bonne URL
+grep "votre-domaine.com" .next/standalone/server.js | head -1
+
+# Recopier les fichiers statiques (sans sudo)
+cp -r .next/static .next/standalone/.next/
+if [ -d "public" ]; then cp -r public .next/standalone/; fi
 
 # Redémarrer le service
 sudo systemctl restart echochat-frontend
+```
+
+**💡 Astuce** : Créez un script de déploiement `deploy.sh` pour automatiser :
+```bash
+#!/bin/bash
+cd /opt/echochat/frontend
+sudo chown -R ubuntu:ubuntu .next
+NEXT_PUBLIC_API_URL=https://votre-domaine.com npm run build
+cp -r .next/static .next/standalone/.next/
+[ -d "public" ] && cp -r public .next/standalone/
+sudo systemctl restart echochat-frontend
+echo "✓ Déploiement terminé !"
 ```
 
 ## 📁 Project Structure
