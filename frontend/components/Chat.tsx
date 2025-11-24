@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, X, MessageCircle } from 'lucide-react';
 import { chatAPI, ChatSource } from '@/lib/api';
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, { Components } from 'react-markdown';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -79,6 +79,40 @@ export default function Chat() {
     }
   };
 
+  const markdownComponents: Components = {
+    a: ({ node, ...props }) => (
+      <a
+        {...props}
+        className="text-primary-700 hover:underline break-words"
+        target="_blank"
+        rel="noopener noreferrer"
+      />
+    ),
+    p: ({ node, ...props }) => <p className="mb-2 last:mb-0 leading-relaxed" {...props} />,
+    ul: ({ node, ...props }) => <ul className="list-disc list-inside space-y-1" {...props} />,
+    ol: ({ node, ...props }) => <ol className="list-decimal list-inside space-y-1" {...props} />,
+    code: ({ node, inline, className, children, ...props }) => {
+      if (inline) {
+        return (
+          <code
+            className={`bg-gray-200 text-gray-900 rounded px-1 py-0.5 text-[0.85rem] ${className || ''}`.trim()}
+            {...props}
+          >
+            {children}
+          </code>
+        );
+      }
+
+      return (
+        <pre className="bg-gray-900 text-gray-100 rounded-md p-3 overflow-x-auto text-sm">
+          <code className={className} {...props}>
+            {children}
+          </code>
+        </pre>
+      );
+    },
+  };
+
   return (
     <>
       {!isOpen && (
@@ -116,7 +150,10 @@ export default function Chat() {
                 className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div
                   className={`max-w-[80%] rounded-lg p-3 ${message.role === 'user' ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-900'}`}>
-                  <ReactMarkdown className="text-sm prose prose-sm max-w-none">
+                  <ReactMarkdown
+                    className="text-sm prose prose-sm max-w-none prose-headings:text-gray-900 prose-p:text-gray-900 prose-li:text-gray-900 prose-strong:text-gray-900"
+                    components={markdownComponents}
+                  >
                     {message.content}
                   </ReactMarkdown>
                   
