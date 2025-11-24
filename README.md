@@ -179,8 +179,208 @@ npm install
 cp .env.local.example .env.local
 # Edit .env.local with your API URL
 
-# Run the frontend
+# Run the frontend (development mode)
 npm run dev
+```
+
+### Frontend Production Deployment (Standalone Mode)
+
+Pour un déploiement en production avec Next.js en mode `standalone` :
+
+#### 1. Configuration des variables d'environnement
+
+```bash
+cd frontend
+
+# Créez .env.production avec votre URL de production
+nano .env.production
+```
+
+Contenu de `.env.production` :
+```bash
+NEXT_PUBLIC_API_URL=https://votre-domaine.com
+# Ou avec reverse proxy :
+# NEXT_PUBLIC_API_URL=https://votre-domaine.com
+
+# NextAuth configuration (si utilisé)
+NEXTAUTH_SECRET=votre-secret-genere
+NEXTAUTH_URL=https://votre-domaine.com
+```
+
+⚠️ **Important** : Les variables `NEXT_PUBLIC_*` sont **compilées dans le JavaScript** au moment du build. Elles ne peuvent pas être changées après sans rebuild.
+
+#### 2. Build et copie des fichiers statiques
+
+⚠️ **CRITIQUE** : Les variables `NEXT_PUBLIC_*` doivent être définies **AU MOMENT DU BUILD** car elles sont compilées dans le JavaScript.
+
+```bash
+cd frontend
+
+# Nettoyez les permissions si nécessaire (après des copies avec sudo)
+sudo chown -R ubuntu:ubuntu .next
+
+# ⚠️ Build avec la variable définie explicitement
+NEXT_PUBLIC_API_URL=https://votre-domaine.com npm run build
+
+# Vérifiez que la bonne URL est compilée
+grep "votre-domaine.com" .next/standalone/server.js | head -1
+
+# ⚠️ OBLIGATOIRE : Copier les fichiers statiques vers standalone
+# En mode standalone, Next.js NE copie PAS automatiquement ces fichiers
+cp -r .next/static .next/standalone/.next/
+
+# Copier public si le dossier existe
+if [ -d "public" ]; then
+  cp -r public .next/standalone/
+  echo "✓ Dossier public copié"
+else
+  echo "⚠ Pas de dossier public (c'est normal si vous n'avez pas de fichiers statiques)"
+fi
+
+# Vérifier que les fichiers sont bien copiés
+ls -la .next/standalone/.next/static/chunks/ | head -5
+```
+
+**Alternative si problème de permissions :**
+```bash
+# Supprimez complètement .next et recommencez
+sudo rm -rf .next
+NEXT_PUBLIC_API_URL=https://votre-domaine.com npm run build
+cp -r .next/static .next/standalone/.next/
+```
+
+#### 3. Configuration systemd (recommandé pour production)
+
+Créez le service systemd `/etc/systemd/system/echochat-frontend.service` :
+
+```ini
+[Unit]
+Description=EchoChat Frontend (Next.js)
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/echochat/frontend
+Environment=NODE_ENV=production
+Environment=PORT=3001
+Environment=NEXT_PUBLIC_API_URL=https://votre-domaine.com
+ExecStart=/usr/bin/node /opt/echochat/frontend/.next/standalone/server.js
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Activez et démarrez le service :
+
+```bash
+# Rechargez systemd
+sudo systemctl daemon-reload
+
+# Activez le service au démarrage
+sudo systemctl enable echochat-frontend
+
+# Démarrez le service
+sudo systemctl start echochat-frontend
+
+# Vérifiez le statut
+sudo systemctl status echochat-frontend
+
+# Voir les logs
+sudo journalctl -u echochat-frontend -f
+```
+
+#### 4. Configuration nginx (reverse proxy)
+
+Pour servir l'application via HTTPS avec nginx :
+
+```nginx
+server {
+    server_name votre-domaine.com;
+
+    # NextAuth routes (si utilisé)
+    location /api/auth/ {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # Backend API
+    location /api/ {
+        proxy_pass http://127.0.0.1:8001;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Frontend Next.js
+    location / {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    listen 443 ssl;
+    ssl_certificate /etc/letsencrypt/live/votre-domaine.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/votre-domaine.com/privkey.pem;
+}
+
+server {
+    listen 80;
+    server_name votre-domaine.com;
+    return 301 https://$host$request_uri;
+}
+```
+
+#### 5. Après chaque rebuild
+
+⚠️ **À chaque fois que vous voulez changer l'URL ou rebuild**, suivez cette procédure complète :
+
+```bash
+cd /opt/echochat/frontend
+
+# Nettoyez les permissions
+sudo chown -R ubuntu:ubuntu .next
+
+# Rebuild AVEC la variable définie
+NEXT_PUBLIC_API_URL=https://votre-domaine.com npm run build
+
+# Vérifiez que c'est la bonne URL
+grep "votre-domaine.com" .next/standalone/server.js | head -1
+
+# Recopier les fichiers statiques (sans sudo)
+cp -r .next/static .next/standalone/.next/
+if [ -d "public" ]; then cp -r public .next/standalone/; fi
+
+# Redémarrer le service
+sudo systemctl restart echochat-frontend
+```
+
+**💡 Astuce** : Créez un script de déploiement `deploy.sh` pour automatiser :
+```bash
+#!/bin/bash
+cd /opt/echochat/frontend
+sudo chown -R ubuntu:ubuntu .next
+NEXT_PUBLIC_API_URL=https://votre-domaine.com npm run build
+cp -r .next/static .next/standalone/.next/
+[ -d "public" ] && cp -r public .next/standalone/
+sudo systemctl restart echochat-frontend
+echo "✓ Déploiement terminé !"
 ```
 
 ## 📁 Project Structure
