@@ -1,0 +1,24 @@
+[Unit]
+Description=EchoChat Frontend (Next.js)
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/echochat/frontend
+# Explicit environment variables (replace values with yours)
+Environment="NODE_ENV=production"
+Environment="PORT=3001"
+Environment="NEXT_PUBLIC_API_URL=http://localhost:8001"
+Environment="NEXTAUTH_SECRET=your-secret-here"
+Environment="NEXTAUTH_URL=https://echochat.iafluence.cloud"
+Environment="GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com"
+Environment="GOOGLE_CLIENT_SECRET=your-client-secret"
+Environment="ALLOWED_ADMIN_EMAILS=suan.tay.job@gmail.com,j.wallut.pro@gmail.com"
+ExecStart=/usr/bin/npm start
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
