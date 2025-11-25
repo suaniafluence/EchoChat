@@ -2,7 +2,14 @@ import { useState, useRef, useEffect } from 'react';
 import { Send, X, MessageCircle } from 'lucide-react';
 import { chatAPI, ChatSource } from '@/lib/api';
 import ReactMarkdown, { Components } from 'react-markdown';
-import { CodeComponent } from 'react-markdown/lib/ast-to-react';
+import type { HTMLAttributes, ReactNode } from 'react';
+
+type CodeProps = HTMLAttributes<HTMLElement> & {
+  node?: unknown;
+  inline?: boolean;
+  className?: string;
+  children?: ReactNode;
+};
 
 interface Message {
   role: 'user' | 'assistant';
@@ -80,7 +87,7 @@ export default function Chat() {
     }
   };
 
-  const codeComponent: CodeComponent = ({ node, inline, className, children, ...props }) => {
+  const codeComponent = ({ inline, className, children, ...props }: CodeProps) => {
     if (inline) {
       return (
         <code
