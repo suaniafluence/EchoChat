@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Send, X, MessageCircle } from 'lucide-react';
 import { chatAPI, ChatSource } from '@/lib/api';
 import ReactMarkdown, { Components } from 'react-markdown';
+import { CodeComponent } from 'react-markdown/lib/ast-to-react';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -79,6 +80,27 @@ export default function Chat() {
     }
   };
 
+  const codeComponent: CodeComponent = ({ node, inline, className, children, ...props }) => {
+    if (inline) {
+      return (
+        <code
+          className={`bg-gray-200 text-gray-900 rounded px-1 py-0.5 text-[0.85rem] ${className || ''}`.trim()}
+          {...props}
+        >
+          {children}
+        </code>
+      );
+    }
+
+    return (
+      <pre className="bg-gray-900 text-gray-100 rounded-md p-3 overflow-x-auto text-sm">
+        <code className={className} {...props}>
+          {children}
+        </code>
+      </pre>
+    );
+  };
+
   const markdownComponents: Components = {
     a: ({ node, ...props }) => (
       <a
@@ -91,26 +113,7 @@ export default function Chat() {
     p: ({ node, ...props }) => <p className="mb-2 last:mb-0 leading-relaxed" {...props} />,
     ul: ({ node, ...props }) => <ul className="list-disc list-inside space-y-1" {...props} />,
     ol: ({ node, ...props }) => <ol className="list-decimal list-inside space-y-1" {...props} />,
-    code: ({ node, inline, className, children, ...props }) => {
-      if (inline) {
-        return (
-          <code
-            className={`bg-gray-200 text-gray-900 rounded px-1 py-0.5 text-[0.85rem] ${className || ''}`.trim()}
-            {...props}
-          >
-            {children}
-          </code>
-        );
-      }
-
-      return (
-        <pre className="bg-gray-900 text-gray-100 rounded-md p-3 overflow-x-auto text-sm">
-          <code className={className} {...props}>
-            {children}
-          </code>
-        </pre>
-      );
-    },
+    code: codeComponent,
   };
 
   return (
