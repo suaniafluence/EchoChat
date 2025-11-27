@@ -7,8 +7,8 @@ Type=simple
 User=www-data
 Group=www-data
 WorkingDirectory=/opt/echochat/frontend
-EnvironmentFile=/opt/echochat/frontend/.env.production
-ExecStart=/usr/bin/npm start
+EnvironmentFile=/opt/echochat/frontend/.env.local
+ExecStart=/usr/bin/node .next/standalone/server.js
 Restart=always
 RestartSec=5
 
