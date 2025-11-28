@@ -411,34 +411,22 @@ async def load_job_to_rag(
         raise HTTPException(status_code=400, detail="Job must be completed before loading to RAG")
 
     try:
-        # Get all scraped pages (not job-specific, as pages are shared globally)
-        pages = db.query(ScrapedPage).all()
-
-        if not pages:
-            raise HTTPException(status_code=404, detail="No pages found in database")
-
-        # Load into RAG engine
+        # Use the RAG engine's index_all_pages method which handles everything
         rag_engine = get_rag_engine()
-        total_chunks = 0
-
-        for page in pages:
-            chunks = rag_engine.index_document(
-                url=page.url,
-                title=page.title or "",
-                content=page.content or "",
-                html=page.html or ""
-            )
-            total_chunks += chunks
+        total_chunks = rag_engine.index_all_pages(db)
 
         # Update job with RAG indexed count
         job.rag_indexed = total_chunks
         db.commit()
 
-        logger.info(f"Loaded all pages to RAG for job {job_id}: {total_chunks} chunks from {len(pages)} pages")
+        # Get page count for response
+        pages_count = db.query(ScrapedPage).count()
+
+        logger.info(f"Loaded all pages to RAG for job {job_id}: {total_chunks} chunks from {pages_count} pages")
 
         return {
-            "message": f"Successfully loaded {len(pages)} pages with {total_chunks} chunks to RAG",
-            "pages_loaded": len(pages),
+            "message": f"Successfully loaded {pages_count} pages with {total_chunks} chunks to RAG",
+            "pages_loaded": pages_count,
             "chunks_indexed": total_chunks
         }
 
