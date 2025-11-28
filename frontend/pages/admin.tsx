@@ -75,9 +75,6 @@ export default function Admin() {
       ]);
       setStats(statsData);
       setJobs(jobsData);
-      if (!targetUrl) {
-        setTargetUrl(statsData.target_url);
-      }
     } catch (error) {
       console.error('Failed to load data:', error);
     }
@@ -89,6 +86,18 @@ export default function Admin() {
       return;
     }
 
+    // Validate URL format (http or https)
+    try {
+      const url = new URL(targetUrl);
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+        setMessage({ type: 'error', text: 'URL must start with http:// or https://' });
+        return;
+      }
+    } catch (e) {
+      setMessage({ type: 'error', text: 'Please enter a valid URL (must start with http:// or https://)' });
+      return;
+    }
+
     setLoading(true);
     setMessage(null);
 
@@ -97,8 +106,8 @@ export default function Admin() {
       setMessage({ type: 'success', text: 'Scraping job started successfully!' });
       loadData();
     } catch (error: any) {
-      setMessage({ 
-        type: 'error', 
+      setMessage({
+        type: 'error',
         text: error.response?.data?.detail || 'Failed to start scraping job'
       });
     } finally {

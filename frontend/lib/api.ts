@@ -45,7 +45,6 @@ export interface Stats {
   total_pages: number;
   total_chunks: number;
   last_scrape?: string;
-  target_url: string;
   scrape_frequency_hours: number;
 }
 
