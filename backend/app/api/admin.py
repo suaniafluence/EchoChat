@@ -52,7 +52,6 @@ class StatsResponse(BaseModel):
     total_pages: int
     total_chunks: int
     last_scrape: Optional[datetime]
-    target_url: str
     scrape_frequency_hours: int
 
 
@@ -246,7 +245,6 @@ async def get_stats(db: Session = Depends(get_db)):
         total_pages=total_pages,
         total_chunks=rag_stats.get('total_chunks', 0),
         last_scrape=last_indexed_job.completed_at if last_indexed_job else None,
-        target_url=settings.target_url,
         scrape_frequency_hours=settings.scrape_frequency_hours
     )
 
@@ -260,7 +258,6 @@ async def get_config():
         Current configuration
     """
     return {
-        "target_url": settings.target_url,
         "scrape_frequency_hours": settings.scrape_frequency_hours
     }
 
@@ -268,7 +265,7 @@ async def get_config():
 @router.put("/config")
 async def update_config(config_update: ConfigUpdate):
     """
-    Update configuration (target URL and scrape frequency).
+    Update configuration (scrape frequency only - target URL is now per-job).
 
     Args:
         config_update: Configuration update request
@@ -277,16 +274,11 @@ async def update_config(config_update: ConfigUpdate):
         Updated configuration
     """
     try:
-        if config_update.target_url:
-            settings.target_url = str(config_update.target_url)
-            logger.info(f"Updated target URL to: {settings.target_url}")
-
         if config_update.scrape_frequency_hours:
             settings.scrape_frequency_hours = config_update.scrape_frequency_hours
             logger.info(f"Updated scrape frequency to: {settings.scrape_frequency_hours} hours")
 
         return {
-            "target_url": settings.target_url,
             "scrape_frequency_hours": settings.scrape_frequency_hours,
             "message": "Configuration updated successfully"
         }

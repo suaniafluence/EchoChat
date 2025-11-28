@@ -8,7 +8,6 @@ from contextlib import asynccontextmanager
 from app.config import settings
 from app.models.database import init_db
 from app.api import chat, admin
-from app.scheduler.scheduler import setup_scheduler, start_scheduler
 from app.utils.logger import logger
 
 
@@ -31,11 +30,8 @@ async def lifespan(app: FastAPI):
     # Initialize database
     init_db()
     logger.info("Database initialized")
-    
-    # Setup and start scheduler
-    setup_scheduler()
-    start_scheduler()
-    
+
+    # Note: Automatic scheduler disabled - scraping is now manual via admin panel
     logger.info("Application started successfully")
     
     yield

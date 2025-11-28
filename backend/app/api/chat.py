@@ -77,7 +77,7 @@ async def chat(
         combined_context = "\n\n".join([f"[Context {i+1}]\n{text}" for i, text in enumerate(context_texts)])
         
         # Build prompt for Anthropic
-        system_prompt = f"""You are a helpful AI assistant that answers questions based ONLY on the provided context from the website {settings.target_url}.
+        system_prompt = """You are a helpful AI assistant that answers questions based ONLY on the provided context from the scraped website content.
 
 IMPORTANT RULES:
 1. Answer ONLY based on the context provided below
