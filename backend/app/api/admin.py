@@ -389,7 +389,10 @@ async def load_job_to_rag(
     db: Session = Depends(get_db)
 ):
     """
-    Load a completed job's scraped pages into RAG index.
+    Load all scraped pages into RAG index and mark this job as the source.
+
+    Note: In this application, pages are stored globally without job association.
+    This endpoint reindexes all pages and marks the job as successfully indexed.
 
     Args:
         job_id: Job ID
@@ -408,11 +411,11 @@ async def load_job_to_rag(
         raise HTTPException(status_code=400, detail="Job must be completed before loading to RAG")
 
     try:
-        # Get all pages from this job
-        pages = db.query(ScrapedPage).filter(ScrapedPage.scrape_job_id == job_id).all()
+        # Get all scraped pages (not job-specific, as pages are shared globally)
+        pages = db.query(ScrapedPage).all()
 
         if not pages:
-            raise HTTPException(status_code=404, detail="No pages found for this job")
+            raise HTTPException(status_code=404, detail="No pages found in database")
 
         # Load into RAG engine
         rag_engine = get_rag_engine()
@@ -431,7 +434,7 @@ async def load_job_to_rag(
         job.rag_indexed = total_chunks
         db.commit()
 
-        logger.info(f"Loaded job {job_id} to RAG: {total_chunks} chunks from {len(pages)} pages")
+        logger.info(f"Loaded all pages to RAG for job {job_id}: {total_chunks} chunks from {len(pages)} pages")
 
         return {
             "message": f"Successfully loaded {len(pages)} pages with {total_chunks} chunks to RAG",
@@ -440,7 +443,7 @@ async def load_job_to_rag(
         }
 
     except Exception as e:
-        logger.error(f"Failed to load job {job_id} to RAG: {e}")
+        logger.error(f"Failed to load pages to RAG for job {job_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -450,7 +453,10 @@ async def delete_job(
     db: Session = Depends(get_db)
 ):
     """
-    Delete a scrape job and its associated scraped pages.
+    Delete a scrape job record.
+
+    Note: This only deletes the job record, not the scraped pages.
+    Pages are stored globally and shared across jobs.
 
     Args:
         job_id: Job ID
@@ -465,18 +471,15 @@ async def delete_job(
         raise HTTPException(status_code=404, detail="Job not found")
 
     try:
-        # Delete associated scraped pages
-        pages_deleted = db.query(ScrapedPage).filter(ScrapedPage.scrape_job_id == job_id).delete()
-
-        # Delete the job
+        # Delete the job (pages are kept as they are shared globally)
         db.delete(job)
         db.commit()
 
-        logger.info(f"Deleted job {job_id} and {pages_deleted} associated pages")
+        logger.info(f"Deleted job {job_id}")
 
         return {
             "message": f"Successfully deleted job {job_id}",
-            "pages_deleted": pages_deleted
+            "pages_deleted": 0  # Pages are not deleted as they are shared
         }
 
     except Exception as e:
