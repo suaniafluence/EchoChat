@@ -380,3 +380,106 @@ async def get_homepage(db: Session = Depends(get_db)):
         'html': homepage.html,
         'scraped_at': homepage.scraped_at
     }
+
+
+@router.post("/jobs/{job_id}/load-rag")
+async def load_job_to_rag(
+    job_id: int,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
+    """
+    Load a completed job's scraped pages into RAG index.
+
+    Args:
+        job_id: Job ID
+        background_tasks: FastAPI background tasks
+        db: Database session
+
+    Returns:
+        Status message
+    """
+    job = db.query(ScrapeJob).filter(ScrapeJob.id == job_id).first()
+
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    if job.status != JobStatus.COMPLETED:
+        raise HTTPException(status_code=400, detail="Job must be completed before loading to RAG")
+
+    try:
+        # Get all pages from this job
+        pages = db.query(ScrapedPage).filter(ScrapedPage.scrape_job_id == job_id).all()
+
+        if not pages:
+            raise HTTPException(status_code=404, detail="No pages found for this job")
+
+        # Load into RAG engine
+        rag_engine = get_rag_engine()
+        total_chunks = 0
+
+        for page in pages:
+            chunks = rag_engine.index_document(
+                url=page.url,
+                title=page.title or "",
+                content=page.content or "",
+                html=page.html or ""
+            )
+            total_chunks += chunks
+
+        # Update job with RAG indexed count
+        job.rag_indexed = total_chunks
+        db.commit()
+
+        logger.info(f"Loaded job {job_id} to RAG: {total_chunks} chunks from {len(pages)} pages")
+
+        return {
+            "message": f"Successfully loaded {len(pages)} pages with {total_chunks} chunks to RAG",
+            "pages_loaded": len(pages),
+            "chunks_indexed": total_chunks
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to load job {job_id} to RAG: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/jobs/{job_id}")
+async def delete_job(
+    job_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Delete a scrape job and its associated scraped pages.
+
+    Args:
+        job_id: Job ID
+        db: Database session
+
+    Returns:
+        Status message
+    """
+    job = db.query(ScrapeJob).filter(ScrapeJob.id == job_id).first()
+
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    try:
+        # Delete associated scraped pages
+        pages_deleted = db.query(ScrapedPage).filter(ScrapedPage.scrape_job_id == job_id).delete()
+
+        # Delete the job
+        db.delete(job)
+        db.commit()
+
+        logger.info(f"Deleted job {job_id} and {pages_deleted} associated pages")
+
+        return {
+            "message": f"Successfully deleted job {job_id}",
+            "pages_deleted": pages_deleted
+        }
+
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Failed to delete job {job_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
