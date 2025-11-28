@@ -3,7 +3,7 @@ import Head from 'next/head';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import { adminAPI, Stats, ScrapeJob } from '@/lib/api';
-import { RefreshCw, Server, Database, Clock, ExternalLink, ArrowLeft, X, ChevronDown, LogOut } from 'lucide-react';
+import { RefreshCw, Server, Database, Clock, ExternalLink, ArrowLeft, X, ChevronDown, LogOut, Upload, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 
 interface LogEntry {
@@ -24,6 +24,8 @@ export default function Admin() {
   const [showLogs, setShowLogs] = useState(false);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const logsEndRef = useRef<HTMLDivElement>(null);
+  const [loadingJobId, setLoadingJobId] = useState<number | null>(null);
+  const [deletingJobId, setDeletingJobId] = useState<number | null>(null);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -101,6 +103,52 @@ export default function Admin() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleLoadToRAG = async (jobId: number) => {
+    setLoadingJobId(jobId);
+    setMessage(null);
+
+    try {
+      const result = await adminAPI.loadJobToRAG(jobId);
+      setMessage({
+        type: 'success',
+        text: `${result.message} (${result.pages_loaded} pages, ${result.chunks_indexed} chunks)`
+      });
+      loadData(); // Reload to show updated stats
+    } catch (error: any) {
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.detail || 'Failed to load job to RAG'
+      });
+    } finally {
+      setLoadingJobId(null);
+    }
+  };
+
+  const handleDeleteJob = async (jobId: number) => {
+    if (!confirm('Are you sure you want to delete this job and all its associated data?')) {
+      return;
+    }
+
+    setDeletingJobId(jobId);
+    setMessage(null);
+
+    try {
+      const result = await adminAPI.deleteJob(jobId);
+      setMessage({
+        type: 'success',
+        text: `${result.message} (${result.pages_deleted} pages deleted)`
+      });
+      loadData(); // Reload jobs list
+    } catch (error: any) {
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.detail || 'Failed to delete job'
+      });
+    } finally {
+      setDeletingJobId(null);
     }
   };
 
@@ -260,6 +308,7 @@ export default function Admin() {
                       <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">Status</th>
                       <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">Pages</th>
                       <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">Created</th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -267,9 +316,9 @@ export default function Admin() {
                       <tr key={job.id} className="border-b hover:bg-gray-50">
                         <td className="py-3 px-4 text-sm text-gray-900">{job.id}</td>
                         <td className="py-3 px-4 text-sm">
-                          <a 
-                            href={job.target_url} 
-                            target="_blank" 
+                          <a
+                            href={job.target_url}
+                            target="_blank"
                             rel="noopener noreferrer"
                             className="text-primary-600 hover:underline flex items-center"
                           >
@@ -285,6 +334,38 @@ export default function Admin() {
                         <td className="py-3 px-4 text-sm text-gray-900">{job.pages_scraped}</td>
                         <td className="py-3 px-4 text-sm text-gray-600">
                           {new Date(job.created_at).toLocaleString()}
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            {job.status === 'completed' && (
+                              <button
+                                onClick={() => handleLoadToRAG(job.id)}
+                                disabled={loadingJobId === job.id}
+                                className="flex items-center gap-1 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Charger dans le RAG"
+                              >
+                                {loadingJobId === job.id ? (
+                                  <RefreshCw size={14} className="animate-spin" />
+                                ) : (
+                                  <Upload size={14} />
+                                )}
+                                Charger
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleDeleteJob(job.id)}
+                              disabled={deletingJobId === job.id}
+                              className="flex items-center gap-1 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded transition disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="Supprimer le job"
+                            >
+                              {deletingJobId === job.id ? (
+                                <RefreshCw size={14} className="animate-spin" />
+                              ) : (
+                                <Trash2 size={14} />
+                              )}
+                              Supprimer
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}

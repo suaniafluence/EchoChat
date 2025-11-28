@@ -61,22 +61,22 @@ export const adminAPI = {
     const response = await api.post<ScrapeJob>('/api/admin/scrape', request);
     return response.data;
   },
-  
+
   getJobs: async (limit: number = 10): Promise<ScrapeJob[]> => {
     const response = await api.get<ScrapeJob[]>('/api/admin/jobs', { params: { limit } });
     return response.data;
   },
-  
+
   getJob: async (jobId: number): Promise<ScrapeJob> => {
     const response = await api.get<ScrapeJob>(`/api/admin/jobs/${jobId}`);
     return response.data;
   },
-  
+
   getStats: async (): Promise<Stats> => {
     const response = await api.get<Stats>('/api/admin/stats');
     return response.data;
   },
-  
+
   getHomepage: async (): Promise<{url: string; title: string; html: string; scraped_at: string}> => {
     const response = await api.get('/api/admin/homepage');
     return response.data;
@@ -84,6 +84,16 @@ export const adminAPI = {
 
   getLogs: async (limit: number = 100): Promise<{logs: Array<{timestamp: string; level: string; logger: string; message: string}>; total: number}> => {
     const response = await api.get('/api/admin/logs', { params: { limit } });
+    return response.data;
+  },
+
+  loadJobToRAG: async (jobId: number): Promise<{message: string; pages_loaded: number; chunks_indexed: number}> => {
+    const response = await api.post(`/api/admin/jobs/${jobId}/load-rag`);
+    return response.data;
+  },
+
+  deleteJob: async (jobId: number): Promise<{message: string; pages_deleted: number}> => {
+    const response = await api.delete(`/api/admin/jobs/${jobId}`);
     return response.data;
   },
 };
