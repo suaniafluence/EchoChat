@@ -226,7 +226,7 @@ export default function Admin() {
           )}
 
           {stats && (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
               <div className="bg-white rounded-lg shadow p-6">
                 <div className="flex items-center mb-2">
                   <Database className="text-primary-600 mr-2" size={20} />
@@ -241,14 +241,6 @@ export default function Admin() {
                   <p className="text-sm text-gray-600">Total Chunks</p>
                 </div>
                 <p className="text-3xl font-bold text-gray-900">{stats.total_chunks}</p>
-              </div>
-
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex items-center mb-2">
-                  <Clock className="text-primary-600 mr-2" size={20} />
-                  <p className="text-sm text-gray-600">Frequency</p>
-                </div>
-                <p className="text-3xl font-bold text-gray-900">{stats.scrape_frequency_hours}h</p>
               </div>
 
               <div className="bg-white rounded-lg shadow p-6">
