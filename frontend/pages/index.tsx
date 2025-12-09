@@ -67,19 +67,19 @@ export default function Home() {
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-6">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-4 sm:p-6">
           <div className="flex items-center mb-4">
-            <AlertCircle className="text-red-500 mr-2" size={24} />
-            <h2 className="text-xl font-semibold text-gray-900">No Homepage Found</h2>
+            <AlertCircle className="text-red-500 mr-2" size={20} />
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900">No Homepage Found</h2>
           </div>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <p className="text-sm text-gray-500 mb-4">
+          <p className="text-sm sm:text-base text-gray-600 mb-4">{error}</p>
+          <p className="text-xs sm:text-sm text-gray-500 mb-4">
             Please visit the <Link href="/admin" className="text-primary-600 hover:underline">admin panel</Link> to
             start scraping a website.
           </p>
           <Link
             href="/admin"
-            className="block w-full text-center bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded transition"
+            className="block w-full text-center bg-primary-600 hover:bg-primary-700 text-white font-medium py-2.5 sm:py-2 px-4 rounded transition touch-manipulation"
           >
             Go to Admin Panel
           </Link>
@@ -99,11 +99,11 @@ export default function Home() {
 
       <main className="min-h-screen">
         {/* Demo disclaimer banner */}
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 text-center shadow-md">
-          <p className="text-sm md:text-base font-medium">
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-2 px-3 sm:py-3 sm:px-4 text-center shadow-md">
+          <p className="text-xs sm:text-sm md:text-base font-medium leading-tight sm:leading-normal">
             <strong>Démo technique</strong> — Contenu issu d&apos;un site externe. Ce n&apos;est pas une copie ni un site pirate.
           </p>
-          <p className="text-xs md:text-sm opacity-90 mt-1">
+          <p className="text-[10px] sm:text-xs md:text-sm opacity-90 mt-1 leading-tight sm:leading-normal">
             EchoChat charge uniquement la page publique sélectionnée et y ajoute un assistant conversationnel pour illustrer le fonctionnement d&apos;un RAG (Recherche Augmentée par Génération). Aucune donnée privée n&apos;est collectée, rien n&apos;est hébergé définitivement. Démonstration pédagogique uniquement.
           </p>
         </div>
@@ -115,7 +115,7 @@ export default function Home() {
             sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
             style={{
               width: '100%',
-              height: 'calc(100vh - 80px)',
+              height: 'calc(100vh - 60px)',
               border: 'none',
               display: 'block'
             }}

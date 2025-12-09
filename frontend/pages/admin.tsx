@@ -196,25 +196,27 @@ export default function Admin() {
 
       <div className="min-h-screen bg-gray-50 p-4 md:p-8">
         <div className="max-w-6xl mx-auto">
-          <div className="mb-6 flex items-center justify-between">
+          <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Admin Panel</h1>
-              <p className="text-sm text-gray-500">Connecté en tant que {session?.user?.email}</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Admin Panel</h1>
+              <p className="text-xs sm:text-sm text-gray-500 truncate max-w-[250px] sm:max-w-none">Connecté en tant que {session?.user?.email}</p>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
               <button
                 onClick={() => signOut({ callbackUrl: '/' })}
-                className="flex items-center text-red-600 hover:text-red-700"
+                className="flex items-center text-red-600 hover:text-red-700 text-sm sm:text-base touch-manipulation"
               >
-                <LogOut size={20} className="mr-2" />
-                Déconnexion
+                <LogOut size={18} className="mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Déconnexion</span>
+                <span className="sm:hidden">Sortir</span>
               </button>
               <Link
                 href="/"
-                className="flex items-center text-primary-600 hover:text-primary-700"
+                className="flex items-center text-primary-600 hover:text-primary-700 text-sm sm:text-base touch-manipulation"
               >
-                <ArrowLeft size={20} className="mr-2" />
-                Back to Home
+                <ArrowLeft size={18} className="mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Back to Home</span>
+                <span className="sm:hidden">Accueil</span>
               </Link>
             </div>
           </div>
@@ -226,43 +228,43 @@ export default function Admin() {
           )}
 
           {stats && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-              <div className="bg-white rounded-lg shadow p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 mb-8">
+              <div className="bg-white rounded-lg shadow p-4 sm:p-6">
                 <div className="flex items-center mb-2">
-                  <Database className="text-primary-600 mr-2" size={20} />
-                  <p className="text-sm text-gray-600">Total Pages</p>
+                  <Database className="text-primary-600 mr-2" size={18} />
+                  <p className="text-xs sm:text-sm text-gray-600">Total Pages</p>
                 </div>
-                <p className="text-3xl font-bold text-gray-900">{stats.total_pages}</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-900">{stats.total_pages}</p>
               </div>
 
-              <div className="bg-white rounded-lg shadow p-6">
+              <div className="bg-white rounded-lg shadow p-4 sm:p-6">
                 <div className="flex items-center mb-2">
-                  <Server className="text-primary-600 mr-2" size={20} />
-                  <p className="text-sm text-gray-600">Total Chunks</p>
+                  <Server className="text-primary-600 mr-2" size={18} />
+                  <p className="text-xs sm:text-sm text-gray-600">Total Chunks</p>
                 </div>
-                <p className="text-3xl font-bold text-gray-900">{stats.total_chunks}</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-900">{stats.total_chunks}</p>
               </div>
 
-              <div className="bg-white rounded-lg shadow p-6">
+              <div className="bg-white rounded-lg shadow p-4 sm:p-6 sm:col-span-2 md:col-span-1">
                 <div className="flex items-center mb-2">
-                  <RefreshCw className="text-primary-600 mr-2" size={20} />
-                  <p className="text-sm text-gray-600">Last Scrape</p>
+                  <RefreshCw className="text-primary-600 mr-2" size={18} />
+                  <p className="text-xs sm:text-sm text-gray-600">Last Scrape</p>
                 </div>
-                <p className="text-sm font-medium text-gray-900">
-                  {stats.last_scrape 
-                    ? new Date(stats.last_scrape).toLocaleString() 
+                <p className="text-xs sm:text-sm font-medium text-gray-900 break-words">
+                  {stats.last_scrape
+                    ? new Date(stats.last_scrape).toLocaleString()
                     : 'Never'}
                 </p>
               </div>
             </div>
           )}
 
-          <div className="bg-white rounded-lg shadow mb-8 p-6">
-            <h2 className="text-xl font-semibold mb-4 text-gray-900">Start New Scraping Job</h2>
-            
+          <div className="bg-white rounded-lg shadow mb-8 p-4 sm:p-6">
+            <h2 className="text-lg sm:text-xl font-semibold mb-4 text-gray-900">Start New Scraping Job</h2>
+
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                   Target URL
                 </label>
                 <input
@@ -270,7 +272,7 @@ export default function Admin() {
                   value={targetUrl}
                   onChange={(e) => setTargetUrl(e.target.value)}
                   placeholder="https://www.example.com"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-900"
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm sm:text-base text-gray-900 touch-manipulation"
                 />
               </div>
 
@@ -294,14 +296,14 @@ export default function Admin() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold mb-4 text-gray-900">Recent Scraping Jobs</h2>
-            
+          <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+            <h2 className="text-lg sm:text-xl font-semibold mb-4 text-gray-900">Recent Scraping Jobs</h2>
+
             {jobs.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">No scraping jobs yet</p>
+              <p className="text-gray-500 text-center py-8 text-sm sm:text-base">No scraping jobs yet</p>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
+              <div className="overflow-x-auto -mx-4 sm:mx-0">
+                <table className="w-full min-w-[640px]">
                   <thead>
                     <tr className="border-b">
                       <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">ID</th>
@@ -379,32 +381,34 @@ export default function Admin() {
           {/* Logs Panel Button */}
           <button
             onClick={() => setShowLogs(!showLogs)}
-            className="fixed bottom-6 right-6 bg-primary-600 hover:bg-primary-700 text-white rounded-full p-4 shadow-lg transition hover:shadow-xl flex items-center gap-2"
+            className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 bg-primary-600 hover:bg-primary-700 text-white rounded-full p-3 sm:p-4 shadow-lg transition hover:shadow-xl flex items-center justify-center touch-manipulation min-w-[56px] min-h-[56px] z-50"
             title="Toggle System Logs"
+            aria-label="Toggle System Logs"
           >
-            {showLogs ? <X size={24} /> : <ChevronDown size={24} />}
+            {showLogs ? <X size={22} /> : <ChevronDown size={22} />}
           </button>
 
           {/* Logs Modal */}
           {showLogs && (
             <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={() => setShowLogs(false)}>
               <div
-                className="fixed bottom-0 right-0 w-full md:w-1/2 h-2/3 md:h-full bg-white shadow-2xl flex flex-col rounded-t-lg md:rounded-none overflow-hidden"
+                className="fixed bottom-0 right-0 w-full md:w-1/2 h-2/3 md:h-full bg-white shadow-2xl flex flex-col rounded-t-xl md:rounded-none overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Header */}
-                <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50">
-                  <h3 className="font-semibold text-gray-900">System Logs</h3>
+                <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 bg-gray-50">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900">System Logs</h3>
                   <button
                     onClick={() => setShowLogs(false)}
-                    className="text-gray-500 hover:text-gray-700"
+                    className="text-gray-500 hover:text-gray-700 touch-manipulation p-2"
+                    aria-label="Close logs"
                   >
                     <X size={20} />
                   </button>
                 </div>
 
                 {/* Logs Content */}
-                <div className="flex-1 overflow-y-auto bg-gray-900 text-gray-100 font-mono text-sm p-4">
+                <div className="flex-1 overflow-y-auto bg-gray-900 text-gray-100 font-mono text-xs sm:text-sm p-3 sm:p-4">
                   {logs.length === 0 ? (
                     <div className="text-gray-500 text-center py-8">No logs yet...</div>
                   ) : (
