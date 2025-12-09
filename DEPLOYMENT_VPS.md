@@ -121,7 +121,17 @@ sudo chmod 644 /etc/systemd/system/echochat-backend.service
 ```bash
 sudo chown -R www-data:www-data /opt/echochat/frontend
 sudo chown -R www-data:www-data /opt/echochat/backend
+
+# IMPORTANT: Ensure the data directory has write permissions for SQLite
+sudo mkdir -p /opt/echochat/backend/data
+sudo chmod 755 /opt/echochat/backend/data
+sudo chown -R www-data:www-data /opt/echochat/backend/data
 ```
+
+**Note**: SQLite requires write permissions not only on the database file itself, but also on the parent directory to create temporary files (.db-journal, .db-wal, .db-shm). If you encounter "attempt to write a readonly database" errors, verify that:
+- The `/opt/echochat/backend/data` directory exists and has write permissions (755 or 777)
+- The database file (if it exists) has write permissions (644)
+- The directory owner matches the user running the service (www-data)
 
 ### 4. Start Services
 
@@ -234,6 +244,26 @@ export GOOGLE_CLIENT_SECRET="your-secret"
 cd /opt/echochat/frontend
 npm run build
 ```
+
+#### Issue: "attempt to write a readonly database" SQLite error
+
+**Root Cause**: SQLite needs write permissions on both the database file AND its parent directory to create temporary files (.db-journal, .db-wal, .db-shm).
+
+**Solution**:
+```bash
+# Ensure data directory exists with correct permissions
+sudo mkdir -p /opt/echochat/backend/data
+sudo chmod 755 /opt/echochat/backend/data
+sudo chown -R www-data:www-data /opt/echochat/backend/data
+
+# If database file exists, ensure it has write permissions
+sudo chmod 644 /opt/echochat/backend/data/echochat.db
+
+# Restart backend service
+sudo systemctl restart echochat-backend
+```
+
+The application now includes automatic permission checks and fixes on startup, but manual intervention may still be needed in some deployment scenarios.
 
 ## Part 5: After Deployment
 
