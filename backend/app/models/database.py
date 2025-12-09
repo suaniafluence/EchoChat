@@ -7,7 +7,7 @@ import os
 import stat
 import logging
 
-from app.config import settings
+from app.config import settings, DATA_DIR, LOGS_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -17,23 +17,25 @@ def ensure_directory_permissions(dir_path: str) -> None:
     Ensure directory exists with write permissions.
 
     Args:
-        dir_path: Path to directory
+        dir_path: Path to directory (absolute or relative)
     """
-    os.makedirs(dir_path, mode=0o755, exist_ok=True)
+    # Convert to absolute path if not already
+    abs_dir_path = os.path.abspath(dir_path)
+    os.makedirs(abs_dir_path, mode=0o755, exist_ok=True)
 
     # Verify and fix permissions on the directory
     try:
-        current_mode = os.stat(dir_path).st_mode
+        current_mode = os.stat(abs_dir_path).st_mode
         if not (current_mode & stat.S_IWUSR):  # Check if user has write permission
-            logger.warning(f"Directory {dir_path} lacks write permissions. Fixing...")
-            os.chmod(dir_path, 0o755)
-            logger.info(f"Fixed permissions for directory: {dir_path}")
+            logger.warning(f"Directory {abs_dir_path} lacks write permissions. Fixing...")
+            os.chmod(abs_dir_path, 0o755)
+            logger.info(f"Fixed permissions for directory: {abs_dir_path}")
     except Exception as e:
-        logger.error(f"Failed to check/fix directory permissions for {dir_path}: {e}")
+        logger.error(f"Failed to check/fix directory permissions for {abs_dir_path}: {e}")
 
-# Ensure directories exist with proper permissions
-ensure_directory_permissions("./data")
-ensure_directory_permissions("./logs")
+# Ensure directories exist with proper permissions using absolute paths
+ensure_directory_permissions(str(DATA_DIR))
+ensure_directory_permissions(str(LOGS_DIR))
 
 # Database engine
 engine = create_engine(
@@ -91,7 +93,7 @@ def init_db() -> None:
     """Initialize database tables."""
     # Ensure database file has write permissions
     if "sqlite" in settings.database_url:
-        # Extract database file path from URL (format: sqlite:///./data/echochat.db)
+        # Extract database file path from URL (format: sqlite:////absolute/path/to/data/echochat.db)
         db_path = settings.database_url.replace("sqlite:///", "")
         if os.path.exists(db_path):
             try:

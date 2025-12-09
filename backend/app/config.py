@@ -4,6 +4,13 @@ from pydantic import field_validator, ValidationError
 from typing import List
 import os
 import sys
+from pathlib import Path
+
+# Calculate the backend directory (parent of app directory)
+BACKEND_DIR = Path(__file__).parent.parent.resolve()
+DATA_DIR = BACKEND_DIR / "data"
+LOGS_DIR = BACKEND_DIR / "logs"
+CHROMA_DIR = BACKEND_DIR / "chroma_data"
 
 
 class Settings(BaseSettings):
@@ -33,10 +40,10 @@ class Settings(BaseSettings):
                 "Get your API key from: https://console.anthropic.com/"
             )
         return v.strip()
-    
+
     # Database
-    database_url: str = "sqlite:///./data/echochat.db"
-    chroma_persist_directory: str = "./chroma_data"
+    database_url: str = f"sqlite:///{DATA_DIR}/echochat.db"
+    chroma_persist_directory: str = str(CHROMA_DIR)
     
     # RAG Configuration
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
@@ -57,7 +64,7 @@ class Settings(BaseSettings):
     
     # Logging
     log_level: str = "INFO"
-    log_file: str = "./logs/app.log"
+    log_file: str = str(LOGS_DIR / "app.log")
     
     @property
     def cors_origins_list(self) -> List[str]:
