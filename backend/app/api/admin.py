@@ -303,7 +303,7 @@ async def get_system_logs(limit: int = 100):
     import re
     from datetime import datetime
 
-    log_file = "./logs/app.log"
+    log_file = settings.log_file
     logs = []
 
     if os.path.exists(log_file):
