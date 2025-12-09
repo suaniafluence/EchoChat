@@ -17,7 +17,10 @@ export default function Home() {
       .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
       .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
       .replace(/on\w+\s*=\s*[^\s>]*/gi, '')
-      .replace(/javascript:/gi, '');
+      .replace(/javascript:/gi, '')
+      // Remove tarteaucitron cookie consent banner
+      .replace(/<div[^>]*id="tarteaucitronAlertBig"[^>]*>[\s\S]*?<\/div>/gi, '')
+      .replace(/<div[^>]*class="[^"]*tarteaucitron[^"]*"[^>]*>[\s\S]*?<\/div>/gi, '');
 
     // Add base tag to ensure resources load from original domain
     // Extract the base URL (protocol + domain)
