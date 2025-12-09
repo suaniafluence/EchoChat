@@ -30,6 +30,26 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+
+  /* Mobile optimizations */
+  .touch-manipulation {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Prevent text size adjustment on mobile */
+  @supports (-webkit-touch-callout: none) {
+    input, textarea, select {
+      font-size: 16px !important;
+    }
+  }
+
+  /* Smooth scrolling for mobile */
+  @media (max-width: 640px) {
+    * {
+      -webkit-overflow-scrolling: touch;
+    }
+  }
 }
 
 /* Custom scrollbar */

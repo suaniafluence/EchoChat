@@ -128,19 +128,21 @@ export default function Chat() {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 bg-primary-600 hover:bg-primary-700 text-white rounded-full p-4 shadow-lg transition-all duration-200 z-50"
+          className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 bg-primary-600 hover:bg-primary-700 text-white rounded-full p-3 sm:p-4 shadow-lg transition-all duration-200 z-50 touch-manipulation min-w-[56px] min-h-[56px] flex items-center justify-center"
+          aria-label="Ouvrir le chat"
         >
           <MessageCircle size={24} />
         </button>
       )}
 
       {isOpen && (
-        <div className="fixed bottom-6 right-6 w-full max-w-md h-[600px] bg-white rounded-lg shadow-2xl flex flex-col z-50 md:w-96">
-          <div className="bg-primary-600 text-white p-4 rounded-t-lg flex justify-between items-center">
-            <h3 className="font-semibold">Chat Assistant</h3>
+        <div className="fixed inset-0 sm:inset-auto sm:bottom-6 sm:right-6 w-full sm:max-w-md sm:w-96 h-full sm:h-[600px] max-h-screen sm:max-h-[80vh] bg-white sm:rounded-lg shadow-2xl flex flex-col z-50">
+          <div className="bg-primary-600 text-white p-4 sm:rounded-t-lg flex justify-between items-center">
+            <h3 className="font-semibold text-base sm:text-lg">Chat Assistant</h3>
             <button
               onClick={() => setIsOpen(false)}
-              className="hover:bg-primary-700 rounded p-1 transition"
+              className="hover:bg-primary-700 rounded p-1.5 sm:p-1 transition touch-manipulation"
+              aria-label="Fermer le chat"
             >
               <X size={20} />
             </button>
@@ -159,9 +161,9 @@ export default function Chat() {
                 key={index}
                 className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div
-                  className={`max-w-[80%] rounded-lg p-3 ${message.role === 'user' ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-900'}`}>
+                  className={`max-w-[85%] sm:max-w-[80%] rounded-lg p-3 sm:p-3 ${message.role === 'user' ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-900'}`}>
                   <ReactMarkdown
-                    className="text-sm prose prose-sm max-w-none prose-headings:text-gray-900 prose-p:text-gray-900 prose-li:text-gray-900 prose-strong:text-gray-900"
+                    className="text-sm sm:text-sm prose prose-sm max-w-none prose-headings:text-gray-900 prose-p:text-gray-900 prose-li:text-gray-900 prose-strong:text-gray-900 break-words"
                     components={markdownComponents}
                   >
                     {message.content}
@@ -203,7 +205,7 @@ export default function Chat() {
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="p-4 border-t">
+          <div className="p-3 sm:p-4 border-t bg-white">
             <div className="flex space-x-2">
               <input
                 type="text"
@@ -211,13 +213,14 @@ export default function Chat() {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Écrivez votre message..."
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm text-gray-900 placeholder-gray-500"
+                className="flex-1 px-3 sm:px-4 py-2.5 sm:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm sm:text-base text-gray-900 placeholder-gray-500 touch-manipulation"
                 disabled={isLoading}
               />
               <button
                 onClick={sendMessage}
                 disabled={isLoading || !input.trim()}
-                className="bg-primary-600 hover:bg-primary-700 text-white rounded-lg px-4 py-2 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-primary-600 hover:bg-primary-700 text-white rounded-lg px-4 sm:px-4 py-2.5 sm:py-2 transition disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center"
+                aria-label="Envoyer le message"
               >
                 <Send size={18} />
               </button>
